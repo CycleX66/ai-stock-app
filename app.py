@@ -4,7 +4,6 @@ from datetime import datetime, timezone
 
 app = Flask(__name__)
 
-# Simple stock list
 STOCKS = [
     {"symbol": "AZN.L", "market": "UK"},
     {"symbol": "BARC.L", "market": "UK"},
@@ -41,7 +40,9 @@ def generate_signals():
             "signal": signal,
             "confidence": confidence,
             "price": round(random.uniform(100, 2000), 2),
-            "daily_move": round(random.uniform(-3, 3), 2)
+            "daily_move": round(random.uniform(-3, 3), 2),
+            "rsi": round(random.uniform(30, 75), 1),
+            "trend": random.choice(["Up", "Down"])
         })
     return sorted(results, key=lambda x: x["confidence"], reverse=True)
 
@@ -54,7 +55,7 @@ def index():
         "index.html",
         scored=scored,
         best=best,
-        statuses=market_status(),   # ✅ FIXES YOUR ERROR
+        statuses=market_status(),
         paper_value=100000,
         cash=84684,
         positions={},
