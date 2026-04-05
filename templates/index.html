@@ -1,169 +1,60 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AI Stock Signal App</title>
-<style>
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;background:#0b1020;color:#e5e7eb}
-.wrap{max-width:1250px;margin:0 auto;padding:20px}
-h1{margin:0 0 6px;font-size:34px}
-.sub{color:#94a3b8;margin-bottom:18px}
-.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
-.card{background:#121a2b;border:1px solid #1f2a44;border-radius:18px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.2)}
-.span-4{grid-column:span 4}.span-8{grid-column:span 8}.span-6{grid-column:span 6}.span-12{grid-column:span 12}
-.badge{display:inline-block;padding:6px 10px;border-radius:999px;font-weight:700;font-size:12px}
-.open{background:#052e16;color:#86efac}.closed{background:#3f0d17;color:#fda4af}
-.buy{color:#86efac;font-weight:700}.sell{color:#fca5a5;font-weight:700}.hold{color:#cbd5e1;font-weight:700}
-table{width:100%;border-collapse:collapse}
-th,td{text-align:left;padding:10px 8px;border-bottom:1px solid #22304f;font-size:14px}
-th{color:#94a3b8;font-weight:600}
-input,select,button{font:inherit;padding:10px 12px;border-radius:10px;border:1px solid #334155;background:#0f172a;color:#e5e7eb}
-button{background:#2563eb;color:#fff;border:none}
-.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
-.muted{color:#94a3b8}.big{font-size:38px;font-weight:800}
-.metric{font-size:22px;font-weight:700}
-.good{color:#86efac}.bad{color:#fca5a5}
-@media (max-width:900px){.span-4,.span-8,.span-6,.span-12{grid-column:span 12}.wrap{padding:12px}}
-</style>
+    <title>AI Stock Signal App</title>
+    <style>
+        body { background:#0f172a; color:white; font-family:Arial; }
+        .box { background:#1e293b; padding:15px; margin:10px; border-radius:10px; }
+        .green { color:lime; }
+        .red { color:red; }
+        table { width:100%; }
+    </style>
 </head>
 <body>
-<div class="wrap">
+
 <h1>AI Stock Signal App</h1>
-<p class="sub">Smarter dashboard with RSI, moving averages, trend score, UK + US stocks, and paper trading.</p>
 
-<div class="grid">
-  <div class="card span-4">
-    <div class="muted">System status</div>
-    <div class="big">RUNNING</div>
-    <p><span class="badge {{ 'open' if statuses.uk == 'OPEN' else 'closed' }}">UK {{ statuses.uk }}</span></p>
-    <p><span class="badge {{ 'open' if statuses.us == 'OPEN' else 'closed' }}">US {{ statuses.us }}</span></p>
-    <div class="muted">Last refresh</div>
-    <div>{{ last_run or 'Not yet run' }}</div>
-  </div>
+<div class="box">
+    <h2>System status</h2>
+    RUNNING<br>
+    UK: {{ statuses.uk }}<br>
+    US: {{ statuses.us }}
+</div>
 
-  <div class="card span-4">
-    <div class="muted">Best trade right now</div>
-    {% if best %}
-      <h2>{{ best.symbol }}</h2>
-      <div class="{{ best.signal|lower }}">{{ best.signal }}</div>
-      <div>Confidence: <strong>{{ best.confidence }}%</strong></div>
-      <div>Price: <strong>{{ best.close }}</strong></div>
-      <div>RSI: <strong>{{ best.rsi }}</strong></div>
-      <div>Trend: <strong>{{ best.trend }}</strong></div>
-    {% else %}
-      <div>No signal available yet.</div>
-    {% endif %}
-  </div>
+<div class="box">
+    <h2>Best trade right now</h2>
 
-  <div class="card span-4">
-    <div class="muted">Paper account</div>
-    <div class="metric">£{{ paper_value }}</div>
-    <div>Cash: <strong>£{{ cash }}</strong></div>
-    <div>Open positions: <strong>{{ positions|length }}</strong></div>
-    <form method="post" action="/reset_paper" style="margin-top:12px;">
-      <button type="submit">Reset paper trading</button>
-    </form>
-  </div>
+    <strong>{{ best.symbol }}</strong><br>
 
-  <div class="card span-8">
+    <span class="green">{{ best.signal }}</span><br>
+
+    Confidence: {{ best.confidence }}%<br>
+    Price: {{ best.price }}<br>
+    RSI: {{ best.rsi }}<br>
+    Trend: {{ best.trend }}
+</div>
+
+<div class="box">
     <h2>Signal dashboard</h2>
+
     <table>
-      <thead>
         <tr>
-          <th>Symbol</th>
-          <th>Market</th>
-          <th>Signal</th>
-          <th>Confidence</th>
-          <th>Daily move</th>
-          <th>RSI</th>
-          <th>Trend</th>
-          <th>Price</th>
-          <th></th>
+            <th>Symbol</th>
+            <th>Signal</th>
+            <th>Confidence</th>
+            <th>Price</th>
         </tr>
-      </thead>
-      <tbody>
-      {% for row in scored %}
+
+        {% for s in scored %}
         <tr>
-          <td>{{ row.symbol }}</td>
-          <td>{{ row.market }}</td>
-          <td class="{{ row.signal|lower }}">{{ row.signal }}</td>
-          <td>{{ row.confidence }}%</td>
-          <td class="{{ 'good' if row.daily_move >= 0 else 'bad' }}">{{ row.daily_move }}%</td>
-          <td>{{ row.rsi }}</td>
-          <td>{{ row.trend }}</td>
-          <td>{{ row.close }}</td>
-          <td>
-            {% if row.symbol in custom_set %}
-              <form method="post" action="/remove_symbol/{{ row.symbol }}">
-                <button type="submit">Remove</button>
-              </form>
-            {% endif %}
-          </td>
+            <td>{{ s.symbol }}</td>
+            <td>{{ s.signal }}</td>
+            <td>{{ s.confidence }}%</td>
+            <td>{{ s.price }}</td>
         </tr>
-      {% endfor %}
-      </tbody>
+        {% endfor %}
     </table>
-  </div>
-
-  <div class="card span-4">
-    <h2>Add your own stock</h2>
-    <form method="post" action="/add_symbol" class="row">
-      <input type="text" name="symbol" placeholder="e.g. LLOY.L or GOOGL" style="flex:1;">
-      <button type="submit">Add</button>
-    </form>
-    <p class="muted">UK stocks usually end in <strong>.L</strong>.</p>
-
-    <h2 style="margin-top:24px;">Settings</h2>
-    <form method="post" action="/settings" class="row">
-      <label>Markets
-        <select name="markets">
-          <option value="both" {% if settings.markets == 'both' %}selected{% endif %}>UK + US</option>
-          <option value="uk" {% if settings.markets == 'uk' %}selected{% endif %}>UK only</option>
-          <option value="us" {% if settings.markets == 'us' %}selected{% endif %}>US only</option>
-        </select>
-      </label>
-      <label><input type="checkbox" name="safe_mode" {% if settings.safe_mode %}checked{% endif %}> Safe mode</label>
-      <button type="submit">Save</button>
-    </form>
-  </div>
-
-  <div class="card span-6">
-    <h2>Top signals</h2>
-    <table>
-      <thead><tr><th>Symbol</th><th>Signal</th><th>Confidence</th><th>RSI</th><th>Trend</th></tr></thead>
-      <tbody>
-      {% for row in auto_picks %}
-        <tr>
-          <td>{{ row.symbol }}</td>
-          <td class="{{ row.signal|lower }}">{{ row.signal }}</td>
-          <td>{{ row.confidence }}%</td>
-          <td>{{ row.rsi }}</td>
-          <td>{{ row.trend }}</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-  </div>
-
-  <div class="card span-6">
-    <h2>Recent paper trades</h2>
-    <table>
-      <thead><tr><th>Time</th><th>Action</th><th>Symbol</th><th>Qty</th><th>Price</th></tr></thead>
-      <tbody>
-      {% for item in history %}
-        <tr>
-          <td>{{ item.time }}</td>
-          <td>{{ item.action }}</td>
-          <td>{{ item.symbol }}</td>
-          <td>{{ item.qty }}</td>
-          <td>{{ item.price }}</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-  </div>
 </div>
-</div>
+
 </body>
 </html>
