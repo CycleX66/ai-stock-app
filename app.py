@@ -34,6 +34,21 @@ def raw_num(value):
     except Exception:
         return None
 
+def currency_symbol(currency):
+    symbols = {
+        "USD": "$",
+        "GBP": "£",
+        "HKD": "HK$",
+        "INR": "₹",
+    }
+    return symbols.get(currency, "")
+
+def format_money(value, currency):
+    if value == "-" or value is None:
+        return "-"
+    symbol = currency_symbol(currency)
+    return f"{symbol}{value}"
+
 def get_signal(price, ma50, ma200):
     if price is None:
         return "HOLD", 0
@@ -61,13 +76,11 @@ def range_high_low(hist, days):
     return high_val, low_val
 
 def get_best_price(ticker, hist):
-    # 1) latest close from history
     if not hist.empty:
         close_series = pd.to_numeric(hist["Close"], errors="coerce").dropna()
         if not close_series.empty:
             return float(close_series.iloc[-1])
 
-    # 2) fast_info lastPrice
     try:
         fi = ticker.fast_info
         last_price = raw_num(fi.get("lastPrice"))
@@ -76,7 +89,6 @@ def get_best_price(ticker, hist):
     except Exception:
         pass
 
-    # 3) fast_info previousClose
     try:
         fi = ticker.fast_info
         prev_close = raw_num(fi.get("previousClose"))
@@ -101,22 +113,37 @@ def index():
                 scored.append({
                     **s,
                     "price": "-",
+                    "price_display": "-",
                     "signal": "HOLD",
                     "confidence": 0,
                     "d_high": "-",
                     "d_low": "-",
+                    "d_high_display": "-",
+                    "d_low_display": "-",
                     "w_high": "-",
                     "w_low": "-",
+                    "w_high_display": "-",
+                    "w_low_display": "-",
                     "m_high": "-",
                     "m_low": "-",
+                    "m_high_display": "-",
+                    "m_low_display": "-",
                     "m3_high": "-",
                     "m3_low": "-",
+                    "m3_high_display": "-",
+                    "m3_low_display": "-",
                     "m6_high": "-",
                     "m6_low": "-",
+                    "m6_high_display": "-",
+                    "m6_low_display": "-",
                     "m9_high": "-",
                     "m9_low": "-",
+                    "m9_high_display": "-",
+                    "m9_low_display": "-",
                     "m12_high": "-",
                     "m12_low": "-",
+                    "m12_high_display": "-",
+                    "m12_low_display": "-",
                     "chart_symbol": f"{s['market']}:{s['symbol']}",
                 })
                 continue
@@ -150,44 +177,82 @@ def index():
             scored.append({
                 **s,
                 "price": clean_num(price_raw),
+                "price_display": format_money(clean_num(price_raw), s["currency"]),
                 "signal": signal,
                 "confidence": confidence,
+
                 "d_high": d_high,
                 "d_low": d_low,
+                "d_high_display": format_money(d_high, s["currency"]),
+                "d_low_display": format_money(d_low, s["currency"]),
+
                 "w_high": w_high,
                 "w_low": w_low,
+                "w_high_display": format_money(w_high, s["currency"]),
+                "w_low_display": format_money(w_low, s["currency"]),
+
                 "m_high": m_high,
                 "m_low": m_low,
+                "m_high_display": format_money(m_high, s["currency"]),
+                "m_low_display": format_money(m_low, s["currency"]),
+
                 "m3_high": m3_high,
                 "m3_low": m3_low,
+                "m3_high_display": format_money(m3_high, s["currency"]),
+                "m3_low_display": format_money(m3_low, s["currency"]),
+
                 "m6_high": m6_high,
                 "m6_low": m6_low,
+                "m6_high_display": format_money(m6_high, s["currency"]),
+                "m6_low_display": format_money(m6_low, s["currency"]),
+
                 "m9_high": m9_high,
                 "m9_low": m9_low,
+                "m9_high_display": format_money(m9_high, s["currency"]),
+                "m9_low_display": format_money(m9_low, s["currency"]),
+
                 "m12_high": m12_high,
                 "m12_low": m12_low,
+                "m12_high_display": format_money(m12_high, s["currency"]),
+                "m12_low_display": format_money(m12_low, s["currency"]),
+
                 "chart_symbol": f"{s['market']}:{s['symbol']}",
             })
         except Exception:
             scored.append({
                 **s,
                 "price": "-",
+                "price_display": "-",
                 "signal": "HOLD",
                 "confidence": 0,
                 "d_high": "-",
                 "d_low": "-",
+                "d_high_display": "-",
+                "d_low_display": "-",
                 "w_high": "-",
                 "w_low": "-",
+                "w_high_display": "-",
+                "w_low_display": "-",
                 "m_high": "-",
                 "m_low": "-",
+                "m_high_display": "-",
+                "m_low_display": "-",
                 "m3_high": "-",
                 "m3_low": "-",
+                "m3_high_display": "-",
+                "m3_low_display": "-",
                 "m6_high": "-",
                 "m6_low": "-",
+                "m6_high_display": "-",
+                "m6_low_display": "-",
                 "m9_high": "-",
                 "m9_low": "-",
+                "m9_high_display": "-",
+                "m9_low_display": "-",
                 "m12_high": "-",
                 "m12_low": "-",
+                "m12_high_display": "-",
+                "m12_low_display": "-",
                 "chart_symbol": f"{s['market']}:{s['symbol']}",
             })
 
