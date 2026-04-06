@@ -17,10 +17,11 @@ STOCKS = [
     {"symbol": "0700.HK", "name": "Tencent Holdings Ltd.", "market": "HKEX", "currency": "HKD", "chart_symbol": "HKEX:700"},
     {"symbol": "RELIANCE.NS", "name": "Reliance Industries Ltd.", "market": "NSE", "currency": "INR", "chart_symbol": "NSE:RELIANCE"},
 ]
+
 def safe_float(value):
     try:
         return round(float(value), 2)
-    except Exception:
+    except:
         return "-"
 
 def get_range(df, days):
@@ -34,12 +35,10 @@ def get_signal(df):
     df["MA50"] = df["Close"].rolling(50).mean()
 
     last = df.iloc[-1]
-    ma20 = last["MA20"]
-    ma50 = last["MA50"]
 
-    if ma20 > ma50:
+    if last["MA20"] > last["MA50"]:
         return "BUY", 75
-    elif ma20 < ma50:
+    elif last["MA20"] < last["MA50"]:
         return "SELL", 75
     return "HOLD", 50
 
@@ -48,11 +47,9 @@ def get_stock(stock):
         df = yf.Ticker(stock["symbol"]).history(period="1y")
 
         if df.empty:
-            return None
+            raise Exception("No data")
 
         df = df.dropna()
-        if df.empty:
-            return None
 
         signal, confidence = get_signal(df)
 
@@ -81,42 +78,39 @@ def get_stock(stock):
             "m12_low": get_range(df, 252)[1],
         }
 
-    except Exception:
-        return None
+    except:
+        return {
+            "name": stock["name"],
+            "symbol": stock["symbol"],
+            "market": stock["market"],
+            "currency": stock["currency"],
+            "chart_symbol": stock["chart_symbol"],
+            "price": "-",
+            "signal": "HOLD",
+            "confidence": 0,
+            "d_high": "-",
+            "d_low": "-",
+            "w_high": "-",
+            "w_low": "-",
+            "m_high": "-",
+            "m_low": "-",
+            "m3_high": "-",
+            "m3_low": "-",
+            "m6_high": "-",
+            "m6_low": "-",
+            "m9_high": "-",
+            "m9_low": "-",
+            "m12_high": "-",
+            "m12_low": "-",
+        }
 
 @app.route("/")
 def home():
     scored = []
+
     for stock in STOCKS:
         item = get_stock(stock)
-        if item:
-            scored.append(item)
-
-    if not scored:
-        scored = [{
-            "name": "Apple Inc.",
-            "symbol": "AAPL",
-            "market": "NASDAQ",
-            "currency": "USD",
-            "chart_symbol": "NASDAQ:AAPL",
-            "price": 180.00,
-            "signal": "HOLD",
-            "confidence": 50,
-            "d_high": 182.00,
-            "d_low": 178.00,
-            "w_high": 183.00,
-            "w_low": 177.00,
-            "m_high": 185.00,
-            "m_low": 175.00,
-            "m3_high": 190.00,
-            "m3_low": 170.00,
-            "m6_high": 195.00,
-            "m6_low": 165.00,
-            "m9_high": 198.00,
-            "m9_low": 160.00,
-            "m12_high": 200.00,
-            "m12_low": 155.00,
-        }]
+        scored.append(item)
 
     best = max(scored, key=lambda x: x["confidence"])
 
