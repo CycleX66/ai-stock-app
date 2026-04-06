@@ -5,69 +5,69 @@
     <meta http-equiv="refresh" content="30">
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: Arial;
             background: #0f172a;
             color: white;
             padding: 20px;
         }
+
         .box {
             background: #1e293b;
             padding: 20px;
             border-radius: 10px;
             margin-bottom: 20px;
         }
+
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 15px;
         }
+
         th, td {
             padding: 10px;
             text-align: left;
-            vertical-align: top;
         }
+
         th {
             background: #334155;
         }
+
         .clickable-row {
             cursor: pointer;
         }
+
         .clickable-row:hover {
             background: #334155;
         }
+
         .best-row {
             background: #1e40af;
         }
-        .small {
-            color: #cbd5e1;
-            font-size: 14px;
+
+        /* SIGNAL COLORS */
+        .buy { color: #22c55e; font-weight: bold; }
+        .sell { color: #ef4444; font-weight: bold; }
+        .hold { color: #facc15; font-weight: bold; }
+
+        .hl {
+            font-size: 13px;
+            line-height: 1.3;
         }
-        .hold {
-            color: #facc15;
-            font-weight: bold;
-        }
+
         .grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 20px;
         }
-        .hl {
-            line-height: 1.4;
-            white-space: nowrap;
-        }
+
         @media (max-width: 1100px) {
             .grid {
                 grid-template-columns: 1fr;
             }
-            table {
-                font-size: 13px;
-            }
-            th, td {
-                padding: 8px;
-            }
         }
     </style>
 </head>
+
 <body>
 
 <h1>AI Stock Signal App</h1>
@@ -79,66 +79,92 @@
 </div>
 
 <div class="grid">
+
+    <!-- BEST TRADE -->
     <div class="box">
-        <h2>Best trade right now</h2>
+        <h2>Best trade</h2>
+
         <strong>{{ best.symbol }}</strong><br>
-        <span class="hold">{{ best.signal }}</span><br>
-        Confidence: {{ best.confidence }}%<br>
-        Price: {{ best.price }}<br>
-        <div class="small">Chart symbol: {{ best.chart_symbol }}</div>
+
+        <span class="
+            {% if best.signal == 'BUY' %}buy
+            {% elif best.signal == 'SELL' %}sell
+            {% else %}hold{% endif %}
+        ">
+            {{ best.signal }}
+        </span>
+
+        ({{ best.confidence }}%)<br><br>
+
+        Price: {{ best.price }}<br><br>
+
+        Daily: H {{ best.d_high }} / L {{ best.d_low }}<br>
+        Weekly: H {{ best.w_high }} / L {{ best.w_low }}<br>
+        Monthly: H {{ best.m_high }} / L {{ best.m_low }}
     </div>
 
+    <!-- SUMMARY -->
     <div class="box">
-        <h2>High / Low summary</h2>
-        <div class="hl"><strong>Daily:</strong> H {{ best.d_high }}<br>L {{ best.d_low }}</div><br>
-        <div class="hl"><strong>Weekly:</strong> H {{ best.w_high }}<br>L {{ best.w_low }}</div><br>
-        <div class="hl"><strong>Monthly:</strong> H {{ best.m_high }}<br>L {{ best.m_low }}</div><br>
-        <div class="hl"><strong>3 Month:</strong> H {{ best.m3_high }}<br>L {{ best.m3_low }}</div><br>
-        <div class="hl"><strong>6 Month:</strong> H {{ best.m6_high }}<br>L {{ best.m6_low }}</div><br>
-        <div class="hl"><strong>9 Month:</strong> H {{ best.m9_high }}<br>L {{ best.m9_low }}</div><br>
-        <div class="hl"><strong>12 Month:</strong> H {{ best.m12_high }}<br>L {{ best.m12_low }}</div>
+        <h2>High / Low Summary</h2>
+
+        3M: H {{ best.m3_high }} / L {{ best.m3_low }}<br>
+        6M: H {{ best.m6_high }} / L {{ best.m6_low }}<br>
+        9M: H {{ best.m9_high }} / L {{ best.m9_low }}<br>
+        12M: H {{ best.m12_high }} / L {{ best.m12_low }}
     </div>
+
 </div>
 
+<!-- TABLE -->
 <div class="box">
     <h2>Stocks</h2>
+
     <table>
         <tr>
             <th>Symbol</th>
+            <th>Signal</th>
             <th>Price</th>
             <th>Day</th>
             <th>Week</th>
             <th>Month</th>
-            <th>3M</th>
-            <th>6M</th>
-            <th>9M</th>
-            <th>12M</th>
         </tr>
 
         {% for s in scored %}
-        <tr class="clickable-row {% if s.symbol == best.symbol %}best-row{% endif %}" onclick="window.location='/?symbol={{ s.symbol }}'">
+        <tr class="clickable-row {% if s.symbol == best.symbol %}best-row{% endif %}"
+            onclick="window.location='/?symbol={{ s.symbol }}'">
+
             <td>{{ s.symbol }}</td>
+
+            <td>
+                <span class="
+                    {% if s.signal == 'BUY' %}buy
+                    {% elif s.signal == 'SELL' %}sell
+                    {% else %}hold{% endif %}
+                ">
+                    {{ s.signal }}
+                </span>
+            </td>
+
             <td>{{ s.price }}</td>
+
             <td class="hl">H {{ s.d_high }}<br>L {{ s.d_low }}</td>
             <td class="hl">H {{ s.w_high }}<br>L {{ s.w_low }}</td>
             <td class="hl">H {{ s.m_high }}<br>L {{ s.m_low }}</td>
-            <td class="hl">H {{ s.m3_high }}<br>L {{ s.m3_low }}</td>
-            <td class="hl">H {{ s.m6_high }}<br>L {{ s.m6_low }}</td>
-            <td class="hl">H {{ s.m9_high }}<br>L {{ s.m9_low }}</td>
-            <td class="hl">H {{ s.m12_high }}<br>L {{ s.m12_low }}</td>
+
         </tr>
         {% endfor %}
     </table>
 </div>
 
+<!-- CHART -->
 <div class="box">
     <h2>Chart</h2>
-    <div class="small">Using: {{ best.chart_symbol }}</div>
+    Using: {{ best.chart_symbol }}
+
     <iframe
-        src="https://s.tradingview.com/widgetembed/?symbol={{ best.chart_symbol }}&interval=D&theme=dark&style=1"
+        src="https://s.tradingview.com/widgetembed/?symbol={{ best.chart_symbol }}&interval=D&theme=dark"
         width="100%"
-        height="520"
-        frameborder="0">
+        height="500">
     </iframe>
 </div>
 
