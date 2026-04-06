@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request
 import yfinance as yf
 from datetime import datetime
+import math
 
 app = Flask(__name__)
 
@@ -16,21 +17,21 @@ stocks = [
     {"symbol": "RELIANCE.NS", "name": "Reliance Industries Ltd.", "market": "NSE", "currency": "INR"},
 ]
 
+def safe(value):
+    if value is None or (isinstance(value, float) and math.isnan(value)):
+        return "-"
+    return round(value, 2)
+
 def get_signal(price, ma50, ma200):
-    # Handle missing MA200 (common issue)
     if ma200 is None or ma50 is None:
         return "HOLD", 40
 
-    # Strong uptrend
     if price > ma50 and ma50 > ma200:
         return "BUY", 85
-
-    # Strong downtrend
-    if price < ma50 and ma50 < ma200:
+    elif price < ma50 and ma50 < ma200:
         return "SELL", 85
-
-    # Mixed / sideways
-    return "HOLD", 55
+    else:
+        return "HOLD", 55
 
 
 @app.route("/")
@@ -45,39 +46,39 @@ def index():
         if hist.empty or len(hist) < 50:
             continue
 
-        price = round(hist["Close"].iloc[-1], 2)
+        price_raw = hist["Close"].iloc[-1]
+        price = safe(price_raw)
 
         ma50 = hist["Close"].rolling(50).mean().iloc[-1]
         ma200 = hist["Close"].rolling(200).mean().iloc[-1] if len(hist) >= 200 else None
 
-        signal, confidence = get_signal(price, ma50, ma200)
+        signal, confidence = get_signal(price_raw, ma50, ma200)
 
-        # High/Low calculations
-        d_high = round(hist["High"].iloc[-1], 2)
-        d_low = round(hist["Low"].iloc[-1], 2)
+        d_high = safe(hist["High"].iloc[-1])
+        d_low = safe(hist["Low"].iloc[-1])
 
         w = hist.tail(5)
-        w_high = round(w["High"].max(), 2)
-        w_low = round(w["Low"].min(), 2)
+        w_high = safe(w["High"].max())
+        w_low = safe(w["Low"].min())
 
         m = hist.tail(22)
-        m_high = round(m["High"].max(), 2)
-        m_low = round(m["Low"].min(), 2)
+        m_high = safe(m["High"].max())
+        m_low = safe(m["Low"].min())
 
         m3 = hist.tail(66)
-        m3_high = round(m3["High"].max(), 2)
-        m3_low = round(m3["Low"].min(), 2)
+        m3_high = safe(m3["High"].max())
+        m3_low = safe(m3["Low"].min())
 
         m6 = hist.tail(132)
-        m6_high = round(m6["High"].max(), 2)
-        m6_low = round(m6["Low"].min(), 2)
+        m6_high = safe(m6["High"].max())
+        m6_low = safe(m6["Low"].min())
 
         m9 = hist.tail(198)
-        m9_high = round(m9["High"].max(), 2)
-        m9_low = round(m9["Low"].min(), 2)
+        m9_high = safe(m9["High"].max())
+        m9_low = safe(m9["Low"].min())
 
-        m12_high = round(hist["High"].max(), 2)
-        m12_low = round(hist["Low"].min(), 2)
+        m12_high = safe(hist["High"].max())
+        m12_low = safe(hist["Low"].min())
 
         scored.append({
             **s,
@@ -101,7 +102,6 @@ def index():
             "chart_symbol": f"{s['market']}:{s['symbol']}"
         })
 
-    # Sort by confidence (best first)
     scored = sorted(scored, key=lambda x: x["confidence"], reverse=True)
 
     best = next((s for s in scored if s["symbol"] == selected_symbol), scored[0])
