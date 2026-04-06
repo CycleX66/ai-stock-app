@@ -1,116 +1,148 @@
-from flask import Flask, render_template, request
-import yfinance as yf
-from datetime import datetime
-
-app = Flask(__name__)
-
-STOCKS = [
-    {"symbol": "AAPL", "chart_symbol": "NASDAQ:AAPL"},
-    {"symbol": "MSFT", "chart_symbol": "NASDAQ:MSFT"},
-    {"symbol": "NVDA", "chart_symbol": "NASDAQ:NVDA"},
-    {"symbol": "TSLA", "chart_symbol": "NASDAQ:TSLA"},
-]
-
-def get_signal(df):
-    df["MA20"] = df["Close"].rolling(20).mean()
-    df["MA50"] = df["Close"].rolling(50).mean()
-
-    last = df.iloc[-1]
-
-    if last["MA20"] > last["MA50"]:
-        return "BUY", 75
-    elif last["MA20"] < last["MA50"]:
-        return "SELL", 75
-    else:
-        return "HOLD", 50
-
-def get_range(df, days):
-    sub = df.tail(days)
-    return round(sub["High"].max(), 2), round(sub["Low"].min(), 2)
-
-def get_stock(symbol, chart_symbol):
-    try:
-        df = yf.Ticker(symbol).history(period="1y")
-
-        if df.empty:
-            return None
-
-        df = df.dropna()
-
-        price = round(df["Close"].iloc[-1], 2)
-
-        signal, confidence = get_signal(df)
-
-        d_high = round(df["High"].iloc[-1], 2)
-        d_low = round(df["Low"].iloc[-1], 2)
-
-        w_high, w_low = get_range(df, 5)
-        m_high, m_low = get_range(df, 21)
-
-        m3_high, m3_low = get_range(df, 63)
-        m6_high, m6_low = get_range(df, 126)
-        m9_high, m9_low = get_range(df, 189)
-        m12_high, m12_low = get_range(df, 252)
-
-        return {
-            "symbol": symbol,
-            "chart_symbol": chart_symbol,
-            "price": price,
-            "signal": signal,
-            "confidence": confidence,
-
-            "d_high": d_high,
-            "d_low": d_low,
-
-            "w_high": w_high,
-            "w_low": w_low,
-
-            "m_high": m_high,
-            "m_low": m_low,
-
-            "m3_high": m3_high,
-            "m3_low": m3_low,
-
-            "m6_high": m6_high,
-            "m6_low": m6_low,
-
-            "m9_high": m9_high,
-            "m9_low": m9_low,
-
-            "m12_high": m12_high,
-            "m12_low": m12_low,
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Stock Signal App</title>
+    <meta http-equiv="refresh" content="30">
+    <style>
+        body {
+            font-family: Arial;
+            background: #0f172a;
+            color: white;
+            padding: 20px;
         }
+        .box {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background: #334155;
+        }
+        .clickable-row {
+            cursor: pointer;
+        }
+        .clickable-row:hover {
+            background: #334155;
+        }
+        .best-row {
+            background: #1e40af;
+        }
+        .buy { color: #22c55e; font-weight: bold; }
+        .sell { color: #ef4444; font-weight: bold; }
+        .hold { color: #facc15; font-weight: bold; }
+        .hl {
+            font-size: 13px;
+            line-height: 1.3;
+            white-space: nowrap;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .small {
+            color: #cbd5e1;
+            font-size: 14px;
+        }
+        @media (max-width: 1100px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
 
-    except Exception as e:
-        print("ERROR:", e)
-        return None
+<h1>AI Stock Signal App</h1>
 
-@app.route("/")
-def home():
-    scored = []
+<div class="box">
+    <h2>System status</h2>
+    RUNNING<br>
+    Last refresh: {{ now }}
+</div>
 
-    for s in STOCKS:
-        data = get_stock(s["symbol"], s["chart_symbol"])
-        if data:
-            scored.append(data)
+<div class="grid">
+    <div class="box">
+        <h2>Best trade</h2>
+        <strong>{{ best.name }}</strong><br>
+        Symbol: {{ best.symbol }}<br>
+        Market: {{ best.market }}<br><br>
 
-    if not scored:
-        return "No market data available."
+        <span class="{% if best.signal == 'BUY' %}buy{% elif best.signal == 'SELL' %}sell{% else %}hold{% endif %}">
+            {{ best.signal }}
+        </span>
+        ({{ best.confidence }}%)<br><br>
 
-    best = max(scored, key=lambda x: x["confidence"])
+        Price: {{ best.price }}<br>
+        Daily: H {{ best.d_high }} / L {{ best.d_low }}<br>
+        Weekly: H {{ best.w_high }} / L {{ best.w_low }}<br>
+        Monthly: H {{ best.m_high }} / L {{ best.m_low }}<br>
 
-    selected = request.args.get("symbol")
-    if selected:
-        for s in scored:
-            if s["symbol"] == selected:
-                best = s
+        <div class="small">Chart symbol: {{ best.chart_symbol }}</div>
+    </div>
 
-    return render_template(
-        "index.html",
-        scored=scored,
-        best=best,
-        now=datetime.now()
-    )
+    <div class="box">
+        <h2>High / Low Summary</h2>
+        3M: H {{ best.m3_high }} / L {{ best.m3_low }}<br>
+        6M: H {{ best.m6_high }} / L {{ best.m6_low }}<br>
+        9M: H {{ best.m9_high }} / L {{ best.m9_low }}<br>
+        12M: H {{ best.m12_high }} / L {{ best.m12_low }}
+    </div>
+</div>
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+<div class="box">
+    <h2>Stocks</h2>
+    <table>
+        <tr>
+            <th>Name</th>
+            <th>Symbol</th>
+            <th>Market</th>
+            <th>Signal</th>
+            <th>Price</th>
+            <th>Day</th>
+            <th>Week</th>
+            <th>Month</th>
+        </tr>
+
+        {% for s in scored %}
+        <tr class="clickable-row {% if s.symbol == best.symbol %}best-row{% endif %}" onclick="window.location='/?symbol={{ s.symbol }}'">
+            <td>{{ s.name }}</td>
+            <td>{{ s.symbol }}</td>
+            <td>{{ s.market }}</td>
+            <td>
+                <span class="{% if s.signal == 'BUY' %}buy{% elif s.signal == 'SELL' %}sell{% else %}hold{% endif %}">
+                    {{ s.signal }}
+                </span>
+            </td>
+            <td>{{ s.price }}</td>
+            <td class="hl">H {{ s.d_high }}<br>L {{ s.d_low }}</td>
+            <td class="hl">H {{ s.w_high }}<br>L {{ s.w_low }}</td>
+            <td class="hl">H {{ s.m_high }}<br>L {{ s.m_low }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
+<div class="box">
+    <h2>Chart</h2>
+    <div class="small">Using: {{ best.chart_symbol }}</div>
+    <iframe
+        src="https://s.tradingview.com/widgetembed/?symbol={{ best.chart_symbol }}&interval=D&theme=dark"
+        width="100%"
+        height="500"
+        frameborder="0">
+    </iframe>
+</div>
+
+</body>
+</html>
