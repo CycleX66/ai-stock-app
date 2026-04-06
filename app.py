@@ -46,27 +46,37 @@ def get_stock_data(stock):
             period="1y",
             interval="1d",
             auto_adjust=True,
-            progress=False
+            progress=False,
+            threads=False
         )
 
-        if df is None or df.empty or len(df) < 30:
+        if df is None or df.empty:
             return None
 
-        latest = df.iloc[-1]
-        price = float(latest["Close"])
-        prev_price = float(df["Close"].iloc[-2])
-        daily_move = ((price - prev_price) / prev_price) * 100 if prev_price else 0
+        close = df["Close"].squeeze()
+        high_series = df["High"].squeeze()
+        low_series = df["Low"].squeeze()
 
-        close = df["Close"]
-        rsi = float(calc_rsi(close).iloc[-1])
-        ma10 = float(close.rolling(10).mean().iloc[-1])
-        ma20 = float(close.rolling(20).mean().iloc[-1])
+        if len(close) < 3:
+            return None
 
-        if price > ma10 > ma20:
+        latest_price = float(close.iloc[-1])
+        prev_price = float(close.iloc[-2]) if len(close) > 1 else latest_price
+        daily_move = ((latest_price - prev_price) / prev_price) * 100 if prev_price else 0
+
+        rsi_series = calc_rsi(close)
+        rsi = float(rsi_series.iloc[-1]) if not pd.isna(rsi_series.iloc[-1]) else 50.0
+
+        ma10_series = close.rolling(10).mean()
+        ma20_series = close.rolling(20).mean()
+        ma10 = float(ma10_series.iloc[-1]) if not pd.isna(ma10_series.iloc[-1]) else latest_price
+        ma20 = float(ma20_series.iloc[-1]) if not pd.isna(ma20_series.iloc[-1]) else latest_price
+
+        if latest_price > ma10 > ma20:
             trend = "Strong Up"
-        elif price > ma20:
+        elif latest_price > ma20:
             trend = "Up"
-        elif price < ma10 < ma20:
+        elif latest_price < ma10 < ma20:
             trend = "Strong Down"
         else:
             trend = "Down"
@@ -85,8 +95,8 @@ def get_stock_data(stock):
         else:
             signal = "HOLD"
 
-        daily_high = safe_float(latest["High"])
-        daily_low = safe_float(latest["Low"])
+        daily_high = safe_float(high_series.iloc[-1])
+        daily_low = safe_float(low_series.iloc[-1])
 
         weekly_high, weekly_low = get_period_high_low(df, 5)
         monthly_high, monthly_low = get_period_high_low(df, 21)
@@ -101,11 +111,10 @@ def get_stock_data(stock):
             "chart_symbol": stock["chart_symbol"],
             "signal": signal,
             "confidence": confidence,
-            "price": round(price, 2),
+            "price": round(latest_price, 2),
             "daily_move": round(daily_move, 2),
             "rsi": round(rsi, 1),
             "trend": trend,
-
             "daily_high": daily_high,
             "daily_low": daily_low,
             "weekly_high": weekly_high,
@@ -140,7 +149,7 @@ def home():
     scored = generate_signals()
 
     if not scored:
-        return "No market data available."
+        return "Data loading… please refresh in a few seconds."
 
     best = scored[0]
 
