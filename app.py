@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 import random
 from datetime import datetime
 
@@ -37,8 +37,16 @@ def generate_signals():
 
 @app.route("/")
 def home():
+    selected_symbol = request.args.get("symbol")
     scored = generate_signals()
     best = scored[0]
+
+    if selected_symbol:
+        for stock in scored:
+            if stock["symbol"] == selected_symbol:
+                best = stock
+                break
+
     return render_template(
         "index.html",
         scored=scored,
