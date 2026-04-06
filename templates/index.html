@@ -23,17 +23,9 @@
         th, td {
             padding: 10px;
             text-align: left;
-            vertical-align: top;
         }
         th {
             background: #334155;
-        }
-        h1, h2, h3 {
-            margin-top: 0;
-        }
-        .small {
-            color: #cbd5e1;
-            font-size: 14px;
         }
         .clickable-row {
             cursor: pointer;
@@ -41,19 +33,13 @@
         .clickable-row:hover {
             background: #334155;
         }
-        .best-row {
-            background: #1e40af;
+        .small {
+            color: #cbd5e1;
+            font-size: 14px;
         }
-        .buy { color: #22c55e; font-weight: bold; }
-        .sell { color: #ef4444; font-weight: bold; }
-        .hold { color: #facc15; font-weight: bold; }
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-        @media (max-width: 900px) {
-            .grid { grid-template-columns: 1fr; }
+        .hold {
+            color: #facc15;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -67,31 +53,15 @@
     Last refresh: {{ now }}
 </div>
 
-<div class="grid">
-    <div class="box">
-        <h2>Best trade right now</h2>
-        {{ best.symbol }}<br>
-        <span class="{% if best.signal == 'BUY' %}buy{% elif best.signal == 'SELL' %}sell{% else %}hold{% endif %}">
-            {{ best.signal }}
-        </span><br>
-        Confidence: {{ best.confidence }}%<br>
-        Price: {{ best.price }}<br>
-        Daily move: {{ best.daily_move }}%<br>
-        RSI: {{ best.rsi }}<br>
-        Trend: {{ best.trend }}<br>
-        <div class="small">Chart symbol: {{ best.chart_symbol }}</div>
-    </div>
-
-    <div class="box">
-        <h2>High / Low summary</h2>
-        <strong>Daily:</strong> H {{ best.daily_high }} / L {{ best.daily_low }}<br>
-        <strong>Weekly:</strong> H {{ best.weekly_high }} / L {{ best.weekly_low }}<br>
-        <strong>Monthly:</strong> H {{ best.monthly_high }} / L {{ best.monthly_low }}<br>
-        <strong>3 Month:</strong> H {{ best.high_3m }} / L {{ best.low_3m }}<br>
-        <strong>6 Month:</strong> H {{ best.high_6m }} / L {{ best.low_6m }}<br>
-        <strong>9 Month:</strong> H {{ best.high_9m }} / L {{ best.low_9m }}<br>
-        <strong>12 Month:</strong> H {{ best.high_12m }} / L {{ best.low_12m }}
-    </div>
+<div class="box">
+    <h2>Best trade right now</h2>
+    {{ best.symbol }}<br>
+    <span class="hold">{{ best.signal }}</span><br>
+    Confidence: {{ best.confidence }}%<br>
+    Price: {{ best.price }}<br>
+    Daily High: {{ best.daily_high }}<br>
+    Daily Low: {{ best.daily_low }}<br>
+    <div class="small">Chart symbol: {{ best.chart_symbol }}</div>
 </div>
 
 <div class="box">
@@ -102,23 +72,17 @@
             <th>Signal</th>
             <th>Confidence</th>
             <th>Price</th>
-            <th>Day H/L</th>
-            <th>Week H/L</th>
-            <th>Month H/L</th>
+            <th>Daily High</th>
+            <th>Daily Low</th>
         </tr>
         {% for s in scored %}
-        <tr class="clickable-row {% if s.symbol == best.symbol %}best-row{% endif %}" onclick="window.location='/?symbol={{ s.symbol }}'">
+        <tr class="clickable-row" onclick="window.location='/?symbol={{ s.symbol }}'">
             <td>{{ s.symbol }}</td>
-            <td>
-                <span class="{% if s.signal == 'BUY' %}buy{% elif s.signal == 'SELL' %}sell{% else %}hold{% endif %}">
-                    {{ s.signal }}
-                </span>
-            </td>
+            <td><span class="hold">{{ s.signal }}</span></td>
             <td>{{ s.confidence }}%</td>
             <td>{{ s.price }}</td>
-            <td>H {{ s.daily_high }}<br>L {{ s.daily_low }}</td>
-            <td>H {{ s.weekly_high }}<br>L {{ s.weekly_low }}</td>
-            <td>H {{ s.monthly_high }}<br>L {{ s.monthly_low }}</td>
+            <td>{{ s.daily_high }}</td>
+            <td>{{ s.daily_low }}</td>
         </tr>
         {% endfor %}
     </table>
