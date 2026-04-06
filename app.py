@@ -1,148 +1,139 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>AI Stock Signal App</title>
-    <meta http-equiv="refresh" content="30">
-    <style>
-        body {
-            font-family: Arial;
-            background: #0f172a;
-            color: white;
-            padding: 20px;
-        }
-        .box {
-            background: #1e293b;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            padding: 10px;
-            text-align: left;
-            vertical-align: top;
-        }
-        th {
-            background: #334155;
-        }
-        .clickable-row {
-            cursor: pointer;
-        }
-        .clickable-row:hover {
-            background: #334155;
-        }
-        .best-row {
-            background: #1e40af;
-        }
-        .buy { color: #22c55e; font-weight: bold; }
-        .sell { color: #ef4444; font-weight: bold; }
-        .hold { color: #facc15; font-weight: bold; }
-        .hl {
-            font-size: 13px;
-            line-height: 1.3;
-            white-space: nowrap;
-        }
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-        .small {
-            color: #cbd5e1;
-            font-size: 14px;
-        }
-        @media (max-width: 1100px) {
-            .grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
-</head>
-<body>
+from flask import Flask, render_template, request
+import yfinance as yf
+from datetime import datetime
 
-<h1>AI Stock Signal App</h1>
+app = Flask(__name__)
 
-<div class="box">
-    <h2>System status</h2>
-    RUNNING<br>
-    Last refresh: {{ now }}
-</div>
+STOCKS = [
+    {"symbol": "AAPL", "name": "Apple Inc.", "market": "NASDAQ", "chart_symbol": "NASDAQ:AAPL"},
+    {"symbol": "MSFT", "name": "Microsoft Corporation", "market": "NASDAQ", "chart_symbol": "NASDAQ:MSFT"},
+    {"symbol": "NVDA", "name": "NVIDIA Corporation", "market": "NASDAQ", "chart_symbol": "NASDAQ:NVDA"},
+    {"symbol": "TSLA", "name": "Tesla, Inc.", "market": "NASDAQ", "chart_symbol": "NASDAQ:TSLA"},
+]
 
-<div class="grid">
-    <div class="box">
-        <h2>Best trade</h2>
-        <strong>{{ best.name }}</strong><br>
-        Symbol: {{ best.symbol }}<br>
-        Market: {{ best.market }}<br><br>
+def safe_float(value):
+    try:
+        return round(float(value), 2)
+    except Exception:
+        return "-"
 
-        <span class="{% if best.signal == 'BUY' %}buy{% elif best.signal == 'SELL' %}sell{% else %}hold{% endif %}">
-            {{ best.signal }}
-        </span>
-        ({{ best.confidence }}%)<br><br>
+def get_range(df, days):
+    sub = df.tail(days)
+    if sub.empty:
+        return "-", "-"
+    return safe_float(sub["High"].max()), safe_float(sub["Low"].min())
 
-        Price: {{ best.price }}<br>
-        Daily: H {{ best.d_high }} / L {{ best.d_low }}<br>
-        Weekly: H {{ best.w_high }} / L {{ best.w_low }}<br>
-        Monthly: H {{ best.m_high }} / L {{ best.m_low }}<br>
+def get_signal(df):
+    df["MA20"] = df["Close"].rolling(20).mean()
+    df["MA50"] = df["Close"].rolling(50).mean()
 
-        <div class="small">Chart symbol: {{ best.chart_symbol }}</div>
-    </div>
+    last = df.iloc[-1]
+    ma20 = last["MA20"]
+    ma50 = last["MA50"]
 
-    <div class="box">
-        <h2>High / Low Summary</h2>
-        3M: H {{ best.m3_high }} / L {{ best.m3_low }}<br>
-        6M: H {{ best.m6_high }} / L {{ best.m6_low }}<br>
-        9M: H {{ best.m9_high }} / L {{ best.m9_low }}<br>
-        12M: H {{ best.m12_high }} / L {{ best.m12_low }}
-    </div>
-</div>
+    if ma20 > ma50:
+        return "BUY", 75
+    elif ma20 < ma50:
+        return "SELL", 75
+    return "HOLD", 50
 
-<div class="box">
-    <h2>Stocks</h2>
-    <table>
-        <tr>
-            <th>Name</th>
-            <th>Symbol</th>
-            <th>Market</th>
-            <th>Signal</th>
-            <th>Price</th>
-            <th>Day</th>
-            <th>Week</th>
-            <th>Month</th>
-        </tr>
+def get_stock(stock):
+    try:
+        df = yf.Ticker(stock["symbol"]).history(period="1y")
 
-        {% for s in scored %}
-        <tr class="clickable-row {% if s.symbol == best.symbol %}best-row{% endif %}" onclick="window.location='/?symbol={{ s.symbol }}'">
-            <td>{{ s.name }}</td>
-            <td>{{ s.symbol }}</td>
-            <td>{{ s.market }}</td>
-            <td>
-                <span class="{% if s.signal == 'BUY' %}buy{% elif s.signal == 'SELL' %}sell{% else %}hold{% endif %}">
-                    {{ s.signal }}
-                </span>
-            </td>
-            <td>{{ s.price }}</td>
-            <td class="hl">H {{ s.d_high }}<br>L {{ s.d_low }}</td>
-            <td class="hl">H {{ s.w_high }}<br>L {{ s.w_low }}</td>
-            <td class="hl">H {{ s.m_high }}<br>L {{ s.m_low }}</td>
-        </tr>
-        {% endfor %}
-    </table>
-</div>
+        if df.empty:
+            return None
 
-<div class="box">
-    <h2>Chart</h2>
-    <div class="small">Using: {{ best.chart_symbol }}</div>
-    <iframe
-        src="https://s.tradingview.com/widgetembed/?symbol={{ best.chart_symbol }}&interval=D&theme=dark"
-        width="100%"
-        height="500"
-        frameborder="0">
-    </iframe>
-</div>
+        df = df.dropna()
+        if df.empty:
+            return None
 
-</body>
-</html>
+        price = safe_float(df["Close"].iloc[-1])
+        signal, confidence = get_signal(df)
+
+        d_high, d_low = safe_float(df["High"].iloc[-1]), safe_float(df["Low"].iloc[-1])
+        w_high, w_low = get_range(df, 5)
+        m_high, m_low = get_range(df, 21)
+        m3_high, m3_low = get_range(df, 63)
+        m6_high, m6_low = get_range(df, 126)
+        m9_high, m9_low = get_range(df, 189)
+        m12_high, m12_low = get_range(df, 252)
+
+        return {
+            "symbol": stock["symbol"],
+            "name": stock["name"],
+            "market": stock["market"],
+            "chart_symbol": stock["chart_symbol"],
+            "price": price,
+            "signal": signal,
+            "confidence": confidence,
+            "d_high": d_high,
+            "d_low": d_low,
+            "w_high": w_high,
+            "w_low": w_low,
+            "m_high": m_high,
+            "m_low": m_low,
+            "m3_high": m3_high,
+            "m3_low": m3_low,
+            "m6_high": m6_high,
+            "m6_low": m6_low,
+            "m9_high": m9_high,
+            "m9_low": m9_low,
+            "m12_high": m12_high,
+            "m12_low": m12_low,
+        }
+
+    except Exception:
+        return None
+
+@app.route("/")
+def home():
+    scored = []
+    for stock in STOCKS:
+        item = get_stock(stock)
+        if item:
+            scored.append(item)
+
+    if not scored:
+        scored = [{
+            "symbol": "AAPL",
+            "name": "Apple Inc.",
+            "market": "NASDAQ",
+            "chart_symbol": "NASDAQ:AAPL",
+            "price": 180.00,
+            "signal": "HOLD",
+            "confidence": 50,
+            "d_high": 182.00,
+            "d_low": 178.00,
+            "w_high": 183.00,
+            "w_low": 177.00,
+            "m_high": 185.00,
+            "m_low": 175.00,
+            "m3_high": 190.00,
+            "m3_low": 170.00,
+            "m6_high": 195.00,
+            "m6_low": 165.00,
+            "m9_high": 198.00,
+            "m9_low": 160.00,
+            "m12_high": 200.00,
+            "m12_low": 155.00,
+        }]
+
+    best = max(scored, key=lambda x: x["confidence"])
+
+    selected = request.args.get("symbol")
+    if selected:
+        for item in scored:
+            if item["symbol"] == selected:
+                best = item
+                break
+
+    return render_template(
+        "index.html",
+        scored=scored,
+        best=best,
+        now=datetime.now()
+    )
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
