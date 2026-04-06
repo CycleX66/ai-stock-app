@@ -7,7 +7,7 @@ app = Flask(__name__)
 STOCKS = [
     {"symbol": "AZN.L", "market": "UK", "chart_symbol": "LSE:AZN"},
     {"symbol": "BARC.L", "market": "UK", "chart_symbol": "LSE:BARC"},
-    {"symbol": "BP.L", "market": "UK", "chart_symbol": "LSE:BP."},
+    {"symbol": "BP.L", "market": "UK", "chart_symbol": "LSE:BP"},
     {"symbol": "HSBA.L", "market": "UK", "chart_symbol": "LSE:HSBA"},
     {"symbol": "SHEL.L", "market": "UK", "chart_symbol": "LSE:SHEL"},
     {"symbol": "AAPL", "market": "US", "chart_symbol": "NASDAQ:AAPL"},
@@ -18,11 +18,9 @@ STOCKS = [
 
 def generate_signals():
     results = []
-
     for stock in STOCKS:
         signal = random.choice(["BUY", "HOLD", "SELL"])
         confidence = round(random.uniform(50, 100), 1)
-
         results.append({
             "symbol": stock["symbol"],
             "market": stock["market"],
@@ -34,7 +32,6 @@ def generate_signals():
             "trend": random.choice(["Up", "Down"]),
             "chart_symbol": stock["chart_symbol"],
         })
-
     results.sort(key=lambda x: x["confidence"], reverse=True)
     return results
 
@@ -42,7 +39,6 @@ def generate_signals():
 def home():
     scored = generate_signals()
     best = scored[0]
-
     return render_template(
         "index.html",
         scored=scored,
