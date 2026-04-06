@@ -33,6 +33,12 @@
             color: #cbd5e1;
             font-size: 14px;
         }
+        .clickable-row {
+            cursor: pointer;
+        }
+        .clickable-row:hover {
+            background: #334155;
+        }
     </style>
 </head>
 <body>
@@ -58,6 +64,7 @@
 
 <div class="box">
     <h2>Signal dashboard</h2>
+    <div class="small">Tap any row to load that stock’s chart.</div>
     <table>
         <tr>
             <th>Symbol</th>
@@ -66,7 +73,7 @@
             <th>Price</th>
         </tr>
         {% for s in scored %}
-        <tr>
+        <tr class="clickable-row" onclick="window.location='/?symbol={{ s.symbol }}'">
             <td>{{ s.symbol }}</td>
             <td>{{ s.signal }}</td>
             <td>{{ s.confidence }}%</td>
