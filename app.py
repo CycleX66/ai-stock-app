@@ -6,11 +6,12 @@ from datetime import datetime, timezone
 app = Flask(__name__)
 
 STOCKS = [
-    {"symbol": "AZN.L", "market": "UK", "chart_symbol": "AZN"},
-    {"symbol": "BARC.L", "market": "UK", "chart_symbol": "BARC"},
-    {"symbol": "BP.L", "market": "UK", "chart_symbol": "BP"},
-    {"symbol": "HSBA.L", "market": "UK", "chart_symbol": "HSBC"},
-    {"symbol": "SHEL.L", "market": "UK", "chart_symbol": "SHEL"},
+    {"symbol": "AZN.L", "market": "UK", "chart_symbol": "LSE:AZN"},
+    {"symbol": "BARC.L", "market": "UK", "chart_symbol": "LSE:BARC"},
+    {"symbol": "BP.L", "market": "UK", "chart_symbol": "LSE:BP"},
+    {"symbol": "HSBA.L", "market": "UK", "chart_symbol": "LSE:HSBA"},
+    {"symbol": "SHEL.L", "market": "UK", "chart_symbol": "LSE:SHEL"},
+
     {"symbol": "AAPL", "market": "US", "chart_symbol": "NASDAQ:AAPL"},
     {"symbol": "MSFT", "market": "US", "chart_symbol": "NASDAQ:MSFT"},
     {"symbol": "NVDA", "market": "US", "chart_symbol": "NASDAQ:NVDA"},
@@ -30,45 +31,42 @@ def calc_rsi(series, period=14):
 def get_stock_data(stock):
     try:
         df = yf.download(stock["symbol"], period="3mo", interval="1d", auto_adjust=True, progress=False)
+
         if df is None or df.empty or len(df) < 20:
             return None
 
         close = df["Close"].squeeze()
-        latest_price = float(close.iloc[-1])
-        prev_price = float(close.iloc[-2]) if len(close) > 1 else latest_price
-        daily_move = ((latest_price - prev_price) / prev_price) * 100 if prev_price else 0
+        price = float(close.iloc[-1])
+        prev = float(close.iloc[-2])
+        move = ((price - prev) / prev) * 100
 
-        rsi_series = calc_rsi(close)
-        rsi = float(rsi_series.iloc[-1])
-
+        rsi = float(calc_rsi(close).iloc[-1])
         ma10 = float(close.rolling(10).mean().iloc[-1])
         ma20 = float(close.rolling(20).mean().iloc[-1])
 
-        if latest_price > ma10 > ma20:
+        if price > ma10 > ma20:
             trend = "Up"
-        elif latest_price < ma10 < ma20:
+        elif price < ma10 < ma20:
             trend = "Down"
         else:
             trend = "Sideways"
 
-        score = 50.0
+        score = 50
 
         if trend == "Up":
-            score += 18
+            score += 20
         elif trend == "Down":
-            score -= 18
+            score -= 20
 
         if rsi < 35:
-            score += 12
+            score += 10
         elif rsi > 70:
-            score -= 12
-        elif 45 <= rsi <= 60:
-            score += 5
+            score -= 10
 
-        if daily_move > 0:
-            score += min(abs(daily_move) * 4, 15)
+        if move > 0:
+            score += min(abs(move) * 4, 15)
         else:
-            score -= min(abs(daily_move) * 4, 15)
+            score -= min(abs(move) * 4, 15)
 
         confidence = max(1, min(round(score, 1), 99.9))
 
@@ -81,35 +79,29 @@ def get_stock_data(stock):
 
         return {
             "symbol": stock["symbol"],
-            "market": stock["market"],
             "chart_symbol": stock["chart_symbol"],
             "signal": signal,
             "confidence": confidence,
-            "price": round(latest_price, 2),
-            "daily_move": round(daily_move, 2),
-            "rsi": round(rsi, 1),
-            "trend": trend,
+            "price": round(price, 2),
         }
 
-    except Exception:
+    except:
         return None
 
-def generate_signals():
+def generate():
     results = []
-    for stock in STOCKS:
-        data = get_stock_data(stock)
+    for s in STOCKS:
+        data = get_stock_data(s)
         if data:
             results.append(data)
+
     results.sort(key=lambda x: x["confidence"], reverse=True)
     return results
 
 @app.route("/")
 def home():
     selected = request.args.get("symbol")
-    scored = generate_signals()
-
-    if not scored:
-        return "No market data available right now."
+    scored = generate()
 
     best = scored[0]
 
@@ -117,7 +109,6 @@ def home():
         for s in scored:
             if s["symbol"] == selected:
                 best = s
-                break
 
     return render_template(
         "index.html",
