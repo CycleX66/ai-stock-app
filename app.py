@@ -27,11 +27,23 @@ def calc_rsi(series, period=14):
     rsi = 100 - (100 / (1 + rs))
     return rsi.fillna(50)
 
+def safe_float(value):
+    try:
+        return round(float(value), 2)
+    except Exception:
+        return None
+
+def get_period_high_low(df, days):
+    sub = df.tail(days)
+    if sub.empty:
+        return None, None
+    return safe_float(sub["High"].max()), safe_float(sub["Low"].min())
+
 def get_stock_data(stock):
     try:
         df = yf.download(
             stock["symbol"],
-            period="6mo",
+            period="1y",
             interval="1d",
             auto_adjust=True,
             progress=False
@@ -40,49 +52,29 @@ def get_stock_data(stock):
         if df is None or df.empty or len(df) < 30:
             return None
 
-        close = df["Close"].squeeze()
+        latest = df.iloc[-1]
+        price = float(latest["Close"])
+        prev_price = float(df["Close"].iloc[-2])
+        daily_move = ((price - prev_price) / prev_price) * 100 if prev_price else 0
 
-        latest_price = float(close.iloc[-1])
-        prev_price = float(close.iloc[-2])
-        daily_move = ((latest_price - prev_price) / prev_price) * 100 if prev_price else 0
-
+        close = df["Close"]
         rsi = float(calc_rsi(close).iloc[-1])
         ma10 = float(close.rolling(10).mean().iloc[-1])
         ma20 = float(close.rolling(20).mean().iloc[-1])
 
-        if latest_price > ma10 > ma20:
+        if price > ma10 > ma20:
             trend = "Strong Up"
-        elif latest_price > ma20:
+        elif price > ma20:
             trend = "Up"
-        elif latest_price < ma10 < ma20:
+        elif price < ma10 < ma20:
             trend = "Strong Down"
         else:
             trend = "Down"
 
         score = 50.0
-
-        if trend == "Strong Up":
-            score += 20
-        elif trend == "Up":
-            score += 10
-        elif trend == "Strong Down":
-            score -= 20
-        elif trend == "Down":
-            score -= 10
-
-        if rsi < 30:
-            score += 20
-        elif rsi < 40:
-            score += 10
-        elif rsi > 70:
-            score -= 20
-        elif rsi > 60:
-            score -= 10
-
-        if daily_move > 0:
-            score += min(daily_move * 3, 10)
-        else:
-            score -= min(abs(daily_move) * 3, 10)
+        score += 15 if trend == "Strong Up" else 8 if trend == "Up" else -15 if trend == "Strong Down" else -8
+        score += 15 if rsi < 30 else 8 if rsi < 40 else -15 if rsi > 70 else -8 if rsi > 60 else 0
+        score += min(daily_move * 3, 10) if daily_move > 0 else -min(abs(daily_move) * 3, 10)
 
         confidence = max(1, min(round(score, 1), 99.9))
 
@@ -93,16 +85,41 @@ def get_stock_data(stock):
         else:
             signal = "HOLD"
 
+        daily_high = safe_float(latest["High"])
+        daily_low = safe_float(latest["Low"])
+
+        weekly_high, weekly_low = get_period_high_low(df, 5)
+        monthly_high, monthly_low = get_period_high_low(df, 21)
+        high_3m, low_3m = get_period_high_low(df, 63)
+        high_6m, low_6m = get_period_high_low(df, 126)
+        high_9m, low_9m = get_period_high_low(df, 189)
+        high_12m, low_12m = get_period_high_low(df, 252)
+
         return {
             "symbol": stock["symbol"],
             "market": stock["market"],
             "chart_symbol": stock["chart_symbol"],
             "signal": signal,
             "confidence": confidence,
-            "price": round(latest_price, 2),
+            "price": round(price, 2),
             "daily_move": round(daily_move, 2),
             "rsi": round(rsi, 1),
             "trend": trend,
+
+            "daily_high": daily_high,
+            "daily_low": daily_low,
+            "weekly_high": weekly_high,
+            "weekly_low": weekly_low,
+            "monthly_high": monthly_high,
+            "monthly_low": monthly_low,
+            "high_3m": high_3m,
+            "low_3m": low_3m,
+            "high_6m": high_6m,
+            "low_6m": low_6m,
+            "high_9m": high_9m,
+            "low_9m": low_9m,
+            "high_12m": high_12m,
+            "low_12m": low_12m,
         }
 
     except Exception:
@@ -123,7 +140,7 @@ def home():
     scored = generate_signals()
 
     if not scored:
-        return "No market data available right now."
+        return "No market data available."
 
     best = scored[0]
 
