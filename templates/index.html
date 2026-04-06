@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>AI Stock Signal App</title>
+    <meta http-equiv="refresh" content="30">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -39,6 +40,21 @@
         .clickable-row:hover {
             background: #334155;
         }
+        .best-row {
+            background: #1e40af;
+        }
+        .buy {
+            color: #22c55e;
+            font-weight: bold;
+        }
+        .sell {
+            color: #ef4444;
+            font-weight: bold;
+        }
+        .hold {
+            color: #facc15;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -54,7 +70,9 @@
 <div class="box">
     <h2>Best trade right now</h2>
     {{ best.symbol }}<br>
-    {{ best.signal }}<br>
+    <span class="{% if best.signal == 'BUY' %}buy{% elif best.signal == 'SELL' %}sell{% else %}hold{% endif %}">
+        {{ best.signal }}
+    </span><br>
     Confidence: {{ best.confidence }}%<br>
     Price: {{ best.price }}<br>
     RSI: {{ best.rsi }}<br>
@@ -72,9 +90,13 @@
             <th>Price</th>
         </tr>
         {% for s in scored %}
-        <tr class="clickable-row" onclick="window.location='/?symbol={{ s.symbol }}'">
+        <tr class="clickable-row {% if s.symbol == best.symbol %}best-row{% endif %}" onclick="window.location='/?symbol={{ s.symbol }}'">
             <td>{{ s.symbol }}</td>
-            <td>{{ s.signal }}</td>
+            <td>
+                <span class="{% if s.signal == 'BUY' %}buy{% elif s.signal == 'SELL' %}sell{% else %}hold{% endif %}">
+                    {{ s.signal }}
+                </span>
+            </td>
             <td>{{ s.confidence }}%</td>
             <td>{{ s.price }}</td>
         </tr>
@@ -86,9 +108,9 @@
     <h2>Live Chart</h2>
     <div class="small">Using: {{ best.chart_symbol }}</div>
     <iframe
-        src="https://www.tradingview.com/widgetembed/?symbol={{ best.chart_symbol }}&interval=D&theme=dark&style=1&locale=en"
+        src="https://s.tradingview.com/widgetembed/?symbol={{ best.chart_symbol }}&interval=D&theme=dark&style=1"
         width="100%"
-        height="420"
+        height="500"
         frameborder="0">
     </iframe>
 </div>
