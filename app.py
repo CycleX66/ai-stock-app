@@ -47,7 +47,7 @@ def format_money(value, currency):
     if value == "-" or value is None:
         return "-"
     symbol = currency_symbol(currency)
-    return f"{symbol}{value}"
+    return f"{symbol}{value:,.2f}"
 
 def get_signal(price, ma50, ma200):
     if price is None:
@@ -76,7 +76,7 @@ def range_high_low(hist, days):
     return high_val, low_val
 
 def get_best_price(ticker, hist):
-    if not hist.empty:
+    if not hist.empty and "Close" in hist.columns:
         close_series = pd.to_numeric(hist["Close"], errors="coerce").dropna()
         if not close_series.empty:
             return float(close_series.iloc[-1])
@@ -97,7 +97,30 @@ def get_best_price(ticker, hist):
     except Exception:
         pass
 
+    try:
+        info = ticker.info
+        current_price = raw_num(info.get("currentPrice"))
+        if current_price is not None:
+            return current_price
+    except Exception:
+        pass
+
+    try:
+        info = ticker.info
+        regular_price = raw_num(info.get("regularMarketPrice"))
+        if regular_price is not None:
+            return regular_price
+    except Exception:
+        pass
+
     return None
+
+def signal_rank(s):
+    if s["signal"] == "BUY":
+        return (3, s["confidence"])
+    if s["signal"] == "SELL":
+        return (2, s["confidence"])
+    return (1, s["confidence"])
 
 @app.route("/")
 def index():
@@ -256,7 +279,7 @@ def index():
                 "chart_symbol": f"{s['market']}:{s['symbol']}",
             })
 
-    scored = sorted(scored, key=lambda x: x["confidence"], reverse=True)
+    scored = sorted(scored, key=signal_rank, reverse=True)
 
     best = next((s for s in scored if s["symbol"] == selected_symbol), scored[0])
 
