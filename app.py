@@ -5,15 +5,12 @@ from datetime import datetime, timezone
 
 app = Flask(__name__)
 
-# UK stocks use Yahoo Finance symbols for data,
-# but US-listed equivalents for TradingView charts.
 STOCKS = [
     {"symbol": "AZN.L", "market": "UK", "chart_symbol": "NASDAQ:AZN"},
     {"symbol": "BARC.L", "market": "UK", "chart_symbol": "NYSE:BCS"},
     {"symbol": "BP.L", "market": "UK", "chart_symbol": "NYSE:BP"},
     {"symbol": "HSBA.L", "market": "UK", "chart_symbol": "NYSE:HSBC"},
     {"symbol": "SHEL.L", "market": "UK", "chart_symbol": "NYSE:SHEL"},
-
     {"symbol": "AAPL", "market": "US", "chart_symbol": "NASDAQ:AAPL"},
     {"symbol": "MSFT", "market": "US", "chart_symbol": "NASDAQ:MSFT"},
     {"symbol": "NVDA", "market": "US", "chart_symbol": "NASDAQ:NVDA"},
@@ -34,57 +31,64 @@ def get_stock_data(stock):
     try:
         df = yf.download(
             stock["symbol"],
-            period="3mo",
+            period="6mo",
             interval="1d",
             auto_adjust=True,
             progress=False
         )
 
-        if df is None or df.empty or len(df) < 20:
+        if df is None or df.empty or len(df) < 30:
             return None
 
         close = df["Close"].squeeze()
+
         latest_price = float(close.iloc[-1])
-        prev_price = float(close.iloc[-2]) if len(close) > 1 else latest_price
+        prev_price = float(close.iloc[-2])
         daily_move = ((latest_price - prev_price) / prev_price) * 100 if prev_price else 0
 
-        rsi_series = calc_rsi(close)
-        rsi = float(rsi_series.iloc[-1])
-
+        rsi = float(calc_rsi(close).iloc[-1])
         ma10 = float(close.rolling(10).mean().iloc[-1])
         ma20 = float(close.rolling(20).mean().iloc[-1])
 
         if latest_price > ma10 > ma20:
+            trend = "Strong Up"
+        elif latest_price > ma20:
             trend = "Up"
         elif latest_price < ma10 < ma20:
-            trend = "Down"
+            trend = "Strong Down"
         else:
-            trend = "Sideways"
+            trend = "Down"
 
         score = 50.0
 
-        if trend == "Up":
-            score += 18
+        if trend == "Strong Up":
+            score += 20
+        elif trend == "Up":
+            score += 10
+        elif trend == "Strong Down":
+            score -= 20
         elif trend == "Down":
-            score -= 18
+            score -= 10
 
-        if rsi < 35:
-            score += 12
+        if rsi < 30:
+            score += 20
+        elif rsi < 40:
+            score += 10
         elif rsi > 70:
-            score -= 12
-        elif 45 <= rsi <= 60:
-            score += 5
+            score -= 20
+        elif rsi > 60:
+            score -= 10
 
         if daily_move > 0:
-            score += min(abs(daily_move) * 4, 15)
+            score += min(daily_move * 3, 10)
         else:
-            score -= min(abs(daily_move) * 4, 15)
+            score -= min(abs(daily_move) * 3, 10)
 
         confidence = max(1, min(round(score, 1), 99.9))
 
-        if confidence >= 60:
+        if confidence >= 65:
             signal = "BUY"
-        elif confidence <= 40:
+        elif confidence <= 35:
             signal = "SELL"
         else:
             signal = "HOLD"
