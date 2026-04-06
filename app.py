@@ -11,51 +11,42 @@ STOCKS = [
     {"symbol": "TSLA", "chart_symbol": "NASDAQ:TSLA"},
 ]
 
-def safe_float(value):
+def safe(value):
     try:
         return round(float(value), 2)
-    except Exception:
-        return None
+    except:
+        return "-"
 
-def get_period_high_low(df, days):
-    sub = df.tail(days)
-    if sub.empty:
-        return None, None
-    high_val = sub["High"].max()
-    low_val = sub["Low"].min()
-    return safe_float(high_val), safe_float(low_val)
+def get_range(df, days):
+    try:
+        sub = df.tail(days)
+        if sub.empty:
+            return "-", "-"
+        return safe(sub["High"].max()), safe(sub["Low"].min())
+    except:
+        return "-", "-"
 
 def get_stock(symbol, chart_symbol):
     try:
-        df = yf.download(
-            symbol,
-            period="1y",
-            interval="1d",
-            progress=False,
-            auto_adjust=True,
-            threads=False
-        )
+        ticker = yf.Ticker(symbol)
 
-        if df is None or df.empty:
+        df = ticker.history(period="1y")
+
+        if df.empty:
             return None
 
-        close = df["Close"].squeeze()
-        high = df["High"].squeeze()
-        low = df["Low"].squeeze()
+        price = safe(df["Close"].iloc[-1])
 
-        if len(close) < 5:
-            return None
+        d_high = safe(df["High"].iloc[-1])
+        d_low = safe(df["Low"].iloc[-1])
 
-        price = safe_float(close.iloc[-1])
-        daily_high = safe_float(high.iloc[-1])
-        daily_low = safe_float(low.iloc[-1])
+        w_high, w_low = get_range(df, 5)
+        m_high, m_low = get_range(df, 21)
 
-        weekly_high, weekly_low = get_period_high_low(df, 5)
-        monthly_high, monthly_low = get_period_high_low(df, 21)
-        high_3m, low_3m = get_period_high_low(df, 63)
-        high_6m, low_6m = get_period_high_low(df, 126)
-        high_9m, low_9m = get_period_high_low(df, 189)
-        high_12m, low_12m = get_period_high_low(df, 252)
+        m3_high, m3_low = get_range(df, 63)
+        m6_high, m6_low = get_range(df, 126)
+        m9_high, m9_low = get_range(df, 189)
+        m12_high, m12_low = get_range(df, 252)
 
         return {
             "symbol": symbol,
@@ -63,64 +54,52 @@ def get_stock(symbol, chart_symbol):
             "price": price,
             "signal": "HOLD",
             "confidence": 50.0,
-            "daily_high": daily_high,
-            "daily_low": daily_low,
-            "weekly_high": weekly_high,
-            "weekly_low": weekly_low,
-            "monthly_high": monthly_high,
-            "monthly_low": monthly_low,
-            "high_3m": high_3m,
-            "low_3m": low_3m,
-            "high_6m": high_6m,
-            "low_6m": low_6m,
-            "high_9m": high_9m,
-            "low_9m": low_9m,
-            "high_12m": high_12m,
-            "low_12m": low_12m,
+
+            "d_high": d_high,
+            "d_low": d_low,
+
+            "w_high": w_high,
+            "w_low": w_low,
+
+            "m_high": m_high,
+            "m_low": m_low,
+
+            "m3_high": m3_high,
+            "m3_low": m3_low,
+
+            "m6_high": m6_high,
+            "m6_low": m6_low,
+
+            "m9_high": m9_high,
+            "m9_low": m9_low,
+
+            "m12_high": m12_high,
+            "m12_low": m12_low,
         }
-    except Exception:
+
+    except Exception as e:
+        print("ERROR:", e)
         return None
 
 @app.route("/")
 def home():
     scored = []
 
-    for stock in STOCKS:
-        item = get_stock(stock["symbol"], stock["chart_symbol"])
-        if item:
-            scored.append(item)
+    for s in STOCKS:
+        data = get_stock(s["symbol"], s["chart_symbol"])
+        if data:
+            scored.append(data)
 
     if not scored:
-        scored = [{
-            "symbol": "AAPL",
-            "chart_symbol": "NASDAQ:AAPL",
-            "price": 180.00,
-            "signal": "HOLD",
-            "confidence": 50.0,
-            "daily_high": 182.00,
-            "daily_low": 178.00,
-            "weekly_high": 183.00,
-            "weekly_low": 177.00,
-            "monthly_high": 185.00,
-            "monthly_low": 175.00,
-            "high_3m": 190.00,
-            "low_3m": 170.00,
-            "high_6m": 195.00,
-            "low_6m": 165.00,
-            "high_9m": 198.00,
-            "low_9m": 160.00,
-            "high_12m": 200.00,
-            "low_12m": 155.00,
-        }]
+        return "No market data available."
 
     best = scored[0]
 
     selected = request.args.get("symbol")
     if selected:
-        for item in scored:
-            if item["symbol"] == selected:
-                best = item
-                break
+        for s in scored:
+            if s["symbol"] == selected:
+                best = s
 
     return render_template(
         "index.html",
