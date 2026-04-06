@@ -11,34 +11,38 @@ STOCKS = [
     {"symbol": "TSLA", "chart_symbol": "NASDAQ:TSLA"},
 ]
 
-def safe(value):
-    try:
-        return round(float(value), 2)
-    except:
-        return "-"
+def get_signal(df):
+    df["MA20"] = df["Close"].rolling(20).mean()
+    df["MA50"] = df["Close"].rolling(50).mean()
+
+    last = df.iloc[-1]
+
+    if last["MA20"] > last["MA50"]:
+        return "BUY", 75
+    elif last["MA20"] < last["MA50"]:
+        return "SELL", 75
+    else:
+        return "HOLD", 50
 
 def get_range(df, days):
-    try:
-        sub = df.tail(days)
-        if sub.empty:
-            return "-", "-"
-        return safe(sub["High"].max()), safe(sub["Low"].min())
-    except:
-        return "-", "-"
+    sub = df.tail(days)
+    return round(sub["High"].max(), 2), round(sub["Low"].min(), 2)
 
 def get_stock(symbol, chart_symbol):
     try:
-        ticker = yf.Ticker(symbol)
-
-        df = ticker.history(period="1y")
+        df = yf.Ticker(symbol).history(period="1y")
 
         if df.empty:
             return None
 
-        price = safe(df["Close"].iloc[-1])
+        df = df.dropna()
 
-        d_high = safe(df["High"].iloc[-1])
-        d_low = safe(df["Low"].iloc[-1])
+        price = round(df["Close"].iloc[-1], 2)
+
+        signal, confidence = get_signal(df)
+
+        d_high = round(df["High"].iloc[-1], 2)
+        d_low = round(df["Low"].iloc[-1], 2)
 
         w_high, w_low = get_range(df, 5)
         m_high, m_low = get_range(df, 21)
@@ -52,8 +56,8 @@ def get_stock(symbol, chart_symbol):
             "symbol": symbol,
             "chart_symbol": chart_symbol,
             "price": price,
-            "signal": "HOLD",
-            "confidence": 50.0,
+            "signal": signal,
+            "confidence": confidence,
 
             "d_high": d_high,
             "d_low": d_low,
@@ -93,7 +97,7 @@ def home():
     if not scored:
         return "No market data available."
 
-    best = scored[0]
+    best = max(scored, key=lambda x: x["confidence"])
 
     selected = request.args.get("symbol")
     if selected:
