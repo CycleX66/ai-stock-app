@@ -76,7 +76,8 @@
         <h2>Best trade</h2>
         <strong>{{ best.name }}</strong><br>
         Ticker: {{ best.symbol }}<br>
-        Exchange: {{ best.market }}<br><br>
+        Exchange: {{ best.market }}<br>
+        Currency: {{ best.currency }}<br><br>
 
         <span class="{% if best.signal == 'BUY' %}buy{% elif best.signal == 'SELL' %}sell{% else %}hold{% endif %}">
             {{ best.signal }}
@@ -107,6 +108,7 @@
             <th>Company</th>
             <th>Ticker</th>
             <th>Exchange</th>
+            <th>Currency</th>
             <th>Signal</th>
             <th>Price</th>
             <th>Day</th>
@@ -119,6 +121,7 @@
             <td>{{ s.name }}</td>
             <td>{{ s.symbol }}</td>
             <td>{{ s.market }}</td>
+            <td>{{ s.currency }}</td>
             <td>
                 <span class="{% if s.signal == 'BUY' %}buy{% elif s.signal == 'SELL' %}sell{% else %}hold{% endif %}">
                     {{ s.signal }}
