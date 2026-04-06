@@ -26,12 +26,20 @@ def clean_num(value):
     except Exception:
         return "-"
 
+def raw_num(value):
+    try:
+        if value is None or pd.isna(value) or (isinstance(value, float) and math.isnan(value)):
+            return None
+        return float(value)
+    except Exception:
+        return None
+
 def get_signal(price, ma50, ma200):
-    if price is None or pd.isna(price):
+    if price is None:
         return "HOLD", 0
-    if ma50 is None or pd.isna(ma50):
+    if ma50 is None:
         return "HOLD", 40
-    if ma200 is None or pd.isna(ma200):
+    if ma200 is None:
         if price > ma50:
             return "BUY", 65
         if price < ma50:
@@ -51,6 +59,33 @@ def range_high_low(hist, days):
     high_val = clean_num(sub["High"].max())
     low_val = clean_num(sub["Low"].min())
     return high_val, low_val
+
+def get_best_price(ticker, hist):
+    # 1) latest close from history
+    if not hist.empty:
+        close_series = pd.to_numeric(hist["Close"], errors="coerce").dropna()
+        if not close_series.empty:
+            return float(close_series.iloc[-1])
+
+    # 2) fast_info lastPrice
+    try:
+        fi = ticker.fast_info
+        last_price = raw_num(fi.get("lastPrice"))
+        if last_price is not None:
+            return last_price
+    except Exception:
+        pass
+
+    # 3) fast_info previousClose
+    try:
+        fi = ticker.fast_info
+        prev_close = raw_num(fi.get("previousClose"))
+        if prev_close is not None:
+            return prev_close
+    except Exception:
+        pass
+
+    return None
 
 @app.route("/")
 def index():
@@ -91,48 +126,26 @@ def index():
             hist["Close"] = pd.to_numeric(hist["Close"], errors="coerce")
             hist["High"] = pd.to_numeric(hist["High"], errors="coerce")
             hist["Low"] = pd.to_numeric(hist["Low"], errors="coerce")
-            hist = hist.dropna(subset=["Close", "High", "Low"], how="any")
+            hist = hist.dropna(subset=["High", "Low"], how="any")
 
-            if hist.empty:
-                scored.append({
-                    **s,
-                    "price": "-",
-                    "signal": "HOLD",
-                    "confidence": 0,
-                    "d_high": "-",
-                    "d_low": "-",
-                    "w_high": "-",
-                    "w_low": "-",
-                    "m_high": "-",
-                    "m_low": "-",
-                    "m3_high": "-",
-                    "m3_low": "-",
-                    "m6_high": "-",
-                    "m6_low": "-",
-                    "m9_high": "-",
-                    "m9_low": "-",
-                    "m12_high": "-",
-                    "m12_low": "-",
-                    "chart_symbol": f"{s['market']}:{s['symbol']}",
-                })
-                continue
+            price_raw = get_best_price(ticker, hist)
 
-            price_raw = hist["Close"].iloc[-1]
-            ma50 = hist["Close"].rolling(50).mean().iloc[-1] if len(hist) >= 50 else None
-            ma200 = hist["Close"].rolling(200).mean().iloc[-1] if len(hist) >= 200 else None
+            close_for_ma = pd.to_numeric(hist["Close"], errors="coerce").dropna()
+            ma50 = close_for_ma.rolling(50).mean().iloc[-1] if len(close_for_ma) >= 50 else None
+            ma200 = close_for_ma.rolling(200).mean().iloc[-1] if len(close_for_ma) >= 200 else None
 
-            signal, confidence = get_signal(price_raw, ma50, ma200)
+            signal, confidence = get_signal(price_raw, raw_num(ma50), raw_num(ma200))
 
-            d_high = clean_num(hist["High"].iloc[-1])
-            d_low = clean_num(hist["Low"].iloc[-1])
+            d_high = clean_num(hist["High"].iloc[-1]) if not hist.empty else "-"
+            d_low = clean_num(hist["Low"].iloc[-1]) if not hist.empty else "-"
 
             w_high, w_low = range_high_low(hist, 5)
             m_high, m_low = range_high_low(hist, 22)
             m3_high, m3_low = range_high_low(hist, 66)
             m6_high, m6_low = range_high_low(hist, 132)
             m9_high, m9_low = range_high_low(hist, 198)
-            m12_high = clean_num(hist["High"].max())
-            m12_low = clean_num(hist["Low"].min())
+            m12_high = clean_num(hist["High"].max()) if not hist.empty else "-"
+            m12_low = clean_num(hist["Low"].min()) if not hist.empty else "-"
 
             scored.append({
                 **s,
