@@ -3,12 +3,42 @@
 <head>
     <title>AI Stock Signal App</title>
     <style>
-        body { font-family: Arial; background:#0f172a; color:white; padding:20px; }
-        .box { background:#1e293b; padding:20px; border-radius:10px; margin-bottom:20px; }
-        table { width:100%; border-collapse: collapse; }
-        th, td { padding:10px; }
-        th { background:#334155; }
-        tr:hover { background:#334155; cursor:pointer; }
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: white;
+            padding: 20px;
+        }
+        .box {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background: #334155;
+        }
+        h1, h2 {
+            margin-top: 0;
+        }
+        .small {
+            color: #cbd5e1;
+            font-size: 14px;
+        }
+        .clickable-row {
+            cursor: pointer;
+        }
+        .clickable-row:hover {
+            background: #334155;
+        }
     </style>
 </head>
 <body>
@@ -27,6 +57,7 @@
     {{ best.signal }}<br>
     Confidence: {{ best.confidence }}%<br>
     Price: {{ best.price }}<br>
+    <div class="small">Chart symbol: {{ best.chart_symbol }}</div>
 </div>
 
 <div class="box">
@@ -39,7 +70,7 @@
             <th>Price</th>
         </tr>
         {% for s in scored %}
-        <tr onclick="window.location='/?symbol={{ s.symbol }}'">
+        <tr class="clickable-row" onclick="window.location='/?symbol={{ s.symbol }}'">
             <td>{{ s.symbol }}</td>
             <td>{{ s.signal }}</td>
             <td>{{ s.confidence }}%</td>
@@ -51,10 +82,12 @@
 
 <div class="box">
     <h2>Live Chart</h2>
-    Using: {{ best.chart_symbol }}
+    <div class="small">Using: {{ best.chart_symbol }}</div>
     <iframe
-        src="https://www.tradingview.com/widgetembed/?symbol={{ best.chart_symbol }}&interval=D&theme=dark"
-        width="100%" height="400">
+        src="https://www.tradingview.com/widgetembed/?symbol={{ best.chart_symbol }}&interval=D&theme=dark&style=1&locale=en"
+        width="100%"
+        height="420"
+        frameborder="0">
     </iframe>
 </div>
 
