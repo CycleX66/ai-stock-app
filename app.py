@@ -17,12 +17,21 @@ stocks = [
 ]
 
 def get_signal(price, ma50, ma200):
+    # Handle missing MA200 (common issue)
+    if ma200 is None or ma50 is None:
+        return "HOLD", 40
+
+    # Strong uptrend
     if price > ma50 and ma50 > ma200:
-        return "BUY", 80
-    elif price < ma50 and ma50 < ma200:
-        return "SELL", 80
-    else:
-        return "HOLD", 50
+        return "BUY", 85
+
+    # Strong downtrend
+    if price < ma50 and ma50 < ma200:
+        return "SELL", 85
+
+    # Mixed / sideways
+    return "HOLD", 55
+
 
 @app.route("/")
 def index():
@@ -33,16 +42,17 @@ def index():
         ticker = yf.Ticker(s["symbol"])
         hist = ticker.history(period="1y")
 
-        if hist.empty:
+        if hist.empty or len(hist) < 50:
             continue
 
         price = round(hist["Close"].iloc[-1], 2)
 
         ma50 = hist["Close"].rolling(50).mean().iloc[-1]
-        ma200 = hist["Close"].rolling(200).mean().iloc[-1]
+        ma200 = hist["Close"].rolling(200).mean().iloc[-1] if len(hist) >= 200 else None
 
         signal, confidence = get_signal(price, ma50, ma200)
 
+        # High/Low calculations
         d_high = round(hist["High"].iloc[-1], 2)
         d_low = round(hist["Low"].iloc[-1], 2)
 
@@ -91,7 +101,7 @@ def index():
             "chart_symbol": f"{s['market']}:{s['symbol']}"
         })
 
-    # sort best first
+    # Sort by confidence (best first)
     scored = sorted(scored, key=lambda x: x["confidence"], reverse=True)
 
     best = next((s for s in scored if s["symbol"] == selected_symbol), scored[0])
@@ -102,6 +112,7 @@ def index():
         best=best,
         now=datetime.now()
     )
+
 
 if __name__ == "__main__":
     app.run(debug=True)
