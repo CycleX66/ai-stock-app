@@ -1,5 +1,4 @@
-Flask
+flask
 gunicorn
-yfinance
 pandas
-numpy
+yfinance
