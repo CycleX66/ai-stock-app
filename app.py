@@ -4,122 +4,97 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-STOCKS = [
-    {"symbol": "AAPL", "name": "Apple Inc.", "market": "NASDAQ", "currency": "USD", "chart_symbol": "NASDAQ:AAPL"},
-    {"symbol": "MSFT", "name": "Microsoft Corporation", "market": "NASDAQ", "currency": "USD", "chart_symbol": "NASDAQ:MSFT"},
-    {"symbol": "NVDA", "name": "NVIDIA Corporation", "market": "NASDAQ", "currency": "USD", "chart_symbol": "NASDAQ:NVDA"},
-    {"symbol": "TSLA", "name": "Tesla, Inc.", "market": "NASDAQ", "currency": "USD", "chart_symbol": "NASDAQ:TSLA"},
-
-    {"symbol": "AZN.L", "name": "AstraZeneca plc", "market": "LSE", "currency": "GBP", "chart_symbol": "NASDAQ:AZN"},
-    {"symbol": "HSBA.L", "name": "HSBC Holdings plc", "market": "LSE", "currency": "GBP", "chart_symbol": "NYSE:HSBC"},
-    {"symbol": "BARC.L", "name": "Barclays plc", "market": "LSE", "currency": "GBP", "chart_symbol": "NYSE:BCS"},
-
-    {"symbol": "0700.HK", "name": "Tencent Holdings Ltd.", "market": "HKEX", "currency": "HKD", "chart_symbol": "HKEX:700"},
-    {"symbol": "RELIANCE.NS", "name": "Reliance Industries Ltd.", "market": "NSE", "currency": "INR", "chart_symbol": "NSE:RELIANCE"},
+stocks = [
+    {"symbol": "AAPL", "name": "Apple Inc.", "market": "NASDAQ", "currency": "USD"},
+    {"symbol": "MSFT", "name": "Microsoft Corporation", "market": "NASDAQ", "currency": "USD"},
+    {"symbol": "NVDA", "name": "NVIDIA Corporation", "market": "NASDAQ", "currency": "USD"},
+    {"symbol": "TSLA", "name": "Tesla, Inc.", "market": "NASDAQ", "currency": "USD"},
+    {"symbol": "AZN.L", "name": "AstraZeneca plc", "market": "LSE", "currency": "GBP"},
+    {"symbol": "HSBA.L", "name": "HSBC Holdings plc", "market": "LSE", "currency": "GBP"},
+    {"symbol": "BARC.L", "name": "Barclays plc", "market": "LSE", "currency": "GBP"},
+    {"symbol": "0700.HK", "name": "Tencent Holdings Ltd.", "market": "HKEX", "currency": "HKD"},
+    {"symbol": "RELIANCE.NS", "name": "Reliance Industries Ltd.", "market": "NSE", "currency": "INR"},
 ]
 
-def safe_float(value):
-    try:
-        return round(float(value), 2)
-    except:
-        return "-"
-
-def get_range(df, days):
-    sub = df.tail(days)
-    if sub.empty:
-        return "-", "-"
-    return safe_float(sub["High"].max()), safe_float(sub["Low"].min())
-
-def get_signal(df):
-    df["MA20"] = df["Close"].rolling(20).mean()
-    df["MA50"] = df["Close"].rolling(50).mean()
-
-    last = df.iloc[-1]
-
-    if last["MA20"] > last["MA50"]:
-        return "BUY", 75
-    elif last["MA20"] < last["MA50"]:
-        return "SELL", 75
-    return "HOLD", 50
-
-def get_stock(stock):
-    try:
-        df = yf.Ticker(stock["symbol"]).history(period="1y")
-
-        if df.empty:
-            raise Exception("No data")
-
-        df = df.dropna()
-
-        signal, confidence = get_signal(df)
-
-        return {
-            "name": stock["name"],
-            "symbol": stock["symbol"],
-            "market": stock["market"],
-            "currency": stock["currency"],
-            "chart_symbol": stock["chart_symbol"],
-            "price": safe_float(df["Close"].iloc[-1]),
-            "signal": signal,
-            "confidence": confidence,
-            "d_high": safe_float(df["High"].iloc[-1]),
-            "d_low": safe_float(df["Low"].iloc[-1]),
-            "w_high": get_range(df, 5)[0],
-            "w_low": get_range(df, 5)[1],
-            "m_high": get_range(df, 21)[0],
-            "m_low": get_range(df, 21)[1],
-            "m3_high": get_range(df, 63)[0],
-            "m3_low": get_range(df, 63)[1],
-            "m6_high": get_range(df, 126)[0],
-            "m6_low": get_range(df, 126)[1],
-            "m9_high": get_range(df, 189)[0],
-            "m9_low": get_range(df, 189)[1],
-            "m12_high": get_range(df, 252)[0],
-            "m12_low": get_range(df, 252)[1],
-        }
-
-    except:
-        return {
-            "name": stock["name"],
-            "symbol": stock["symbol"],
-            "market": stock["market"],
-            "currency": stock["currency"],
-            "chart_symbol": stock["chart_symbol"],
-            "price": "-",
-            "signal": "HOLD",
-            "confidence": 0,
-            "d_high": "-",
-            "d_low": "-",
-            "w_high": "-",
-            "w_low": "-",
-            "m_high": "-",
-            "m_low": "-",
-            "m3_high": "-",
-            "m3_low": "-",
-            "m6_high": "-",
-            "m6_low": "-",
-            "m9_high": "-",
-            "m9_low": "-",
-            "m12_high": "-",
-            "m12_low": "-",
-        }
+def get_signal(price, ma50, ma200):
+    if price > ma50 and ma50 > ma200:
+        return "BUY", 80
+    elif price < ma50 and ma50 < ma200:
+        return "SELL", 80
+    else:
+        return "HOLD", 50
 
 @app.route("/")
-def home():
+def index():
+    selected_symbol = request.args.get("symbol", stocks[0]["symbol"])
     scored = []
 
-    for stock in STOCKS:
-        item = get_stock(stock)
-        scored.append(item)
+    for s in stocks:
+        ticker = yf.Ticker(s["symbol"])
+        hist = ticker.history(period="1y")
 
-    best = max(scored, key=lambda x: x["confidence"])
+        if hist.empty:
+            continue
 
-    selected = request.args.get("symbol")
-    if selected:
-        for item in scored:
-            if item["symbol"] == selected:
-                best = item
-                break
+        price = round(hist["Close"].iloc[-1], 2)
+
+        ma50 = hist["Close"].rolling(50).mean().iloc[-1]
+        ma200 = hist["Close"].rolling(200).mean().iloc[-1]
+
+        signal, confidence = get_signal(price, ma50, ma200)
+
+        d_high = round(hist["High"].iloc[-1], 2)
+        d_low = round(hist["Low"].iloc[-1], 2)
+
+        w = hist.tail(5)
+        w_high = round(w["High"].max(), 2)
+        w_low = round(w["Low"].min(), 2)
+
+        m = hist.tail(22)
+        m_high = round(m["High"].max(), 2)
+        m_low = round(m["Low"].min(), 2)
+
+        m3 = hist.tail(66)
+        m3_high = round(m3["High"].max(), 2)
+        m3_low = round(m3["Low"].min(), 2)
+
+        m6 = hist.tail(132)
+        m6_high = round(m6["High"].max(), 2)
+        m6_low = round(m6["Low"].min(), 2)
+
+        m9 = hist.tail(198)
+        m9_high = round(m9["High"].max(), 2)
+        m9_low = round(m9["Low"].min(), 2)
+
+        m12_high = round(hist["High"].max(), 2)
+        m12_low = round(hist["Low"].min(), 2)
+
+        scored.append({
+            **s,
+            "price": price,
+            "signal": signal,
+            "confidence": confidence,
+            "d_high": d_high,
+            "d_low": d_low,
+            "w_high": w_high,
+            "w_low": w_low,
+            "m_high": m_high,
+            "m_low": m_low,
+            "m3_high": m3_high,
+            "m3_low": m3_low,
+            "m6_high": m6_high,
+            "m6_low": m6_low,
+            "m9_high": m9_high,
+            "m9_low": m9_low,
+            "m12_high": m12_high,
+            "m12_low": m12_low,
+            "chart_symbol": f"{s['market']}:{s['symbol']}"
+        })
+
+    # sort best first
+    scored = sorted(scored, key=lambda x: x["confidence"], reverse=True)
+
+    best = next((s for s in scored if s["symbol"] == selected_symbol), scored[0])
 
     return render_template(
         "index.html",
@@ -129,4 +104,4 @@ def home():
     )
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    app.run(debug=True)
