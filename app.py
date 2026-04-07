@@ -22,22 +22,24 @@ def clean(value):
         if value is None or pd.isna(value) or (isinstance(value, float) and math.isnan(value)):
             return "-"
         return round(float(value), 2)
-    except:
+    except Exception:
         return "-"
 
 def raw(value):
     try:
+        if value is None or pd.isna(value) or (isinstance(value, float) and math.isnan(value)):
+            return None
         return float(value)
-    except:
+    except Exception:
         return None
 
-def currency_symbol(c):
+def currency_symbol(currency):
     return {
         "USD": "$",
         "GBP": "£",
         "HKD": "HK$",
         "INR": "₹",
-    }.get(c, "")
+    }.get(currency, "")
 
 def money(v, c):
     if v == "-" or v is None:
@@ -60,6 +62,7 @@ def get_signal(price, ma50, ma200):
 
     if price > ma50 and ma50 > ma200:
         return "BUY", 85, "Up"
+
     if price < ma50 and ma50 < ma200:
         return "SELL", 85, "Down"
 
@@ -83,29 +86,78 @@ def score(signal, confidence, price, high, low):
             return round(confidence + pos * 15, 1)
 
         return round(confidence - abs(pos - 0.5) * 10, 1)
-
-    except:
+    except Exception:
         return confidence
+
+def get_best_price(ticker, hist):
+    try:
+        close_series = pd.to_numeric(hist["Close"], errors="coerce").dropna()
+        if not close_series.empty:
+            return float(close_series.iloc[-1])
+    except Exception:
+        pass
+
+    try:
+        fi = ticker.fast_info
+        last_price = raw(fi.get("lastPrice"))
+        if last_price is not None:
+            return last_price
+    except Exception:
+        pass
+
+    try:
+        fi = ticker.fast_info
+        prev_close = raw(fi.get("previousClose"))
+        if prev_close is not None:
+            return prev_close
+    except Exception:
+        pass
+
+    try:
+        info = ticker.info
+        current_price = raw(info.get("currentPrice"))
+        if current_price is not None:
+            return current_price
+    except Exception:
+        pass
+
+    try:
+        info = ticker.info
+        regular_price = raw(info.get("regularMarketPrice"))
+        if regular_price is not None:
+            return regular_price
+    except Exception:
+        pass
+
+    return None
 
 @app.route("/")
 def index():
-
     results = []
 
     for s in stocks:
         try:
             t = yf.Ticker(s["symbol"])
-            hist = t.history(period="1y")
+            hist = t.history(period="1y", auto_adjust=False)
 
             if hist.empty:
                 continue
 
-            hist = hist.dropna()
+            hist = hist.copy()
+            hist = hist[["Open", "High", "Low", "Close"]].dropna(how="all")
+            hist["Close"] = pd.to_numeric(hist["Close"], errors="coerce")
+            hist["High"] = pd.to_numeric(hist["High"], errors="coerce")
+            hist["Low"] = pd.to_numeric(hist["Low"], errors="coerce")
+            hist = hist.dropna(subset=["High", "Low"], how="any")
 
-            price = raw(hist["Close"].iloc[-1])
+            if hist.empty:
+                continue
 
-            ma50 = hist["Close"].rolling(50).mean().iloc[-1]
-            ma200 = hist["Close"].rolling(200).mean().iloc[-1]
+            price = get_best_price(t, hist)
+
+            close_series = pd.to_numeric(hist["Close"], errors="coerce").dropna()
+            ma50 = close_series.rolling(50).mean().iloc[-1] if len(close_series) >= 50 else None
+            ma200 = close_series.rolling(200).mean().iloc[-1] if len(close_series) >= 200 else None
 
             sig, conf, trend = get_signal(price, raw(ma50), raw(ma200))
 
@@ -118,38 +170,59 @@ def index():
             m_high = clean(hist["High"].tail(22).max())
             m_low = clean(hist["Low"].tail(22).min())
 
+            m3_high = clean(hist["High"].tail(66).max())
+            m3_low = clean(hist["Low"].tail(66).min())
+
+            m6_high = clean(hist["High"].tail(132).max())
+            m6_low = clean(hist["Low"].tail(132).min())
+
+            m9_high = clean(hist["High"].tail(198).max())
+            m9_low = clean(hist["Low"].tail(198).min())
+
+            m12_high = clean(hist["High"].max())
+            m12_low = clean(hist["Low"].min())
+
             sc = score(sig, conf, price, raw(m_high), raw(m_low))
 
             results.append({
                 **s,
-                "price": money(clean(price), s["currency"]),
+                "price": clean(price),
+                "price_display": money(clean(price), s["currency"]),
                 "signal": sig,
                 "confidence": conf,
                 "score": sc,
                 "trend": trend,
-
-                "day": f"{money(d_high,s['currency'])} / {money(d_low,s['currency'])}",
-                "week": f"{money(w_high,s['currency'])} / {money(w_low,s['currency'])}",
-                "month": f"{money(m_high,s['currency'])} / {money(m_low,s['currency'])}",
+                "d_high_display": money(d_high, s["currency"]),
+                "d_low_display": money(d_low, s["currency"]),
+                "w_high_display": money(w_high, s["currency"]),
+                "w_low_display": money(w_low, s["currency"]),
+                "m_high_display": money(m_high, s["currency"]),
+                "m_low_display": money(m_low, s["currency"]),
+                "m3_high_display": money(m3_high, s["currency"]),
+                "m3_low_display": money(m3_low, s["currency"]),
+                "m6_high_display": money(m6_high, s["currency"]),
+                "m6_low_display": money(m6_low, s["currency"]),
+                "m9_high_display": money(m9_high, s["currency"]),
+                "m9_low_display": money(m9_low, s["currency"]),
+                "m12_high_display": money(m12_high, s["currency"]),
+                "m12_low_display": money(m12_low, s["currency"]),
             })
 
-        except:
-            pass
+        except Exception:
+            continue
 
-    # 🔥 SORT (BUY FIRST, THEN SCORE)
-    order = {"BUY": 3, "HOLD": 2, "SELL": 1}
+    signal_order = {"BUY": 3, "HOLD": 2, "SELL": 1}
 
     results = sorted(
         results,
-        key=lambda x: (order[x["signal"]], x["score"]),
+        key=lambda x: (signal_order.get(x["signal"], 0), x["score"]),
         reverse=True
     )
 
-    # 🔥 BEST TRADE (BUY PRIORITY)
-    buys = [r for r in results if r["signal"] == "BUY"]
+    buy_stocks = [r for r in results if r["signal"] == "BUY"]
 
-    if buys:
-        best = sorted(buys, key=lambda x: x["score"], reverse=True)[0]
+    if buy_stocks:
+        best = sorted(buy_stocks, key=lambda x: x["score"], reverse=True)[0]
     else:
         best = results[0]
 
