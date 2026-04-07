@@ -1,125 +1,92 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>AI Stock Signals</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="60">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Stock Signals</title>
 
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #0b0f1a;
-            color: white;
-            margin: 0;
-            padding: 10px;
-        }
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #0f172a;
+    color: #e5e7eb;
+    margin: 0;
+    padding: 20px;
+}
 
-        h1 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
+/* ===== LAYOUT ===== */
+.container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
 
-        .container {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
-        }
+@media (min-width: 1000px) {
+    .container {
+        grid-template-columns: 1.5fr 1fr;
+    }
+}
 
-        @media (min-width: 900px) {
-            .container {
-                grid-template-columns: 2fr 1fr;
-            }
-        }
+/* ===== CARD ===== */
+.card {
+    background: #1e293b;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.3);
+}
 
-        .card {
-            background: #121826;
-            padding: 20px;
-            border-radius: 10px;
-        }
+/* ===== BEST TRADE ===== */
+.best-trade {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
 
-        .buy { color: #00ff88; font-weight: bold; }
-        .sell { color: #ff4d4d; font-weight: bold; }
-        .hold { color: #ffaa00; font-weight: bold; }
+@media (min-width: 700px) {
+    .best-trade {
+        grid-template-columns: 1fr 1fr;
+    }
+}
 
-        .high { color: #00ff88; }
-        .medium { color: #ffd166; }
-        .low { color: #ff6b6b; }
+.best-item {
+    background: #0f172a;
+    padding: 12px;
+    border-radius: 8px;
+}
 
-        .oversold { color: #00ff88; }
-        .overbought { color: #ff4d4d; }
+/* ===== TABLE ===== */
+.table-wrapper {
+    overflow-x: auto;
+}
 
-        .time {
-            color: #9ca3af;
-            font-size: 14px;
-            margin-bottom: 10px;
-        }
+table {
+    width: 100%;
+    min-width: 1100px;
+    border-collapse: collapse;
+}
 
-        .best-title {
-            font-size: 26px;
-            font-weight: bold;
-            margin-bottom: 6px;
-        }
+th, td {
+    padding: 10px;
+    text-align: left;
+}
 
-        .best-sub {
-            color: #cbd5e1;
-            margin-bottom: 12px;
-        }
+th {
+    background: #334155;
+}
 
-        .best-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 12px;
-        }
+tr:nth-child(even) {
+    background: #1e293b;
+}
 
-        @media (min-width: 700px) {
-            .best-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-        }
+/* ===== COLORS ===== */
+.buy { color: #22c55e; font-weight: bold; }
+.sell { color: #ef4444; font-weight: bold; }
+.hold { color: #eab308; font-weight: bold; }
 
-        @media (min-width: 1100px) {
-            .best-grid {
-                grid-template-columns: 1fr 1fr 1fr;
-            }
-        }
-
-        .mini {
-            background: #0f172a;
-            padding: 12px;
-            border-radius: 8px;
-        }
-
-        .mini p {
-            margin: 6px 0;
-        }
-
-        .table-wrapper {
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            min-width: 1100px;
-            border-collapse: collapse;
-        }
-
-        th, td {
-            padding: 10px;
-            text-align: left;
-        }
-
-        th {
-            background: #1f2937;
-        }
-
-        tr:nth-child(even) {
-            background: #0f172a;
-        }
-
-        .highlight {
-            background: #1e3a8a !important;
-        }
-    </style>
+h1, h2 {
+    margin-top: 0;
+}
+</style>
 </head>
 
 <body>
@@ -128,104 +95,84 @@
 
 <div class="container">
 
-    <!-- TABLE -->
-    <div class="card">
-        <h2>All Stocks (Ranked)</h2>
+    <!-- ===== LEFT SIDE ===== -->
+    <div>
 
-        <div class="table-wrapper">
-            <table>
-                <tr>
-                    <th>#</th>
-                    <th>Company</th>
-                    <th>Ticker</th>
-                    <th>Exchange</th>
-                    <th>Currency</th>
-                    <th>Signal</th>
-                    <th>Score</th>
-                    <th>Confidence</th>
-                    <th>Trend</th>
-                    <th>RSI</th>
-                    <th>Reason</th>
-                    <th>Price</th>
-                </tr>
+        <!-- ===== BEST TRADE ===== -->
+        <div class="card">
+            <h2>🔥 Best Trade Right Now</h2>
 
-                {% for stock in scored %}
-                <tr {% if loop.index == 1 %}class="highlight"{% endif %}>
-                    <td>{{ loop.index }}</td>
-                    <td>{{ stock.name }}</td>
-                    <td>{{ stock.symbol }}</td>
-                    <td>{{ stock.market }}</td>
-                    <td>{{ stock.currency }}</td>
-                    <td class="{{ stock.signal|lower }}">{{ stock.signal }}</td>
-                    <td>{{ stock.score }}</td>
-                    <td>
-                        <span class="{{ stock.confidence_label|lower }}">
-                            {{ stock.confidence_label }}
-                        </span>
-                        ({{ stock.confidence }})
-                    </td>
-                    <td>{{ stock.trend }}</td>
-                    <td>
-                        {{ stock.rsi }}
-                        {% if stock.rsi_flag == "Oversold" %}
-                            🔥
-                        {% elif stock.rsi_flag == "Overbought" %}
-                            ⚠️
-                        {% endif %}
-                    </td>
-                    <td>{{ stock.reason }}</td>
-                    <td>{{ stock.price_display }}</td>
-                </tr>
-                {% endfor %}
-            </table>
+            <h3>Tencent Holdings Ltd. (0700.HK)</h3>
+            <p>HKEX | HKD</p>
+
+            <div class="best-trade">
+                <div class="best-item">Signal: <span class="buy">BUY</span></div>
+                <div class="best-item">Score: 96.7</div>
+
+                <div class="best-item">Confidence: Medium (80)</div>
+                <div class="best-item">Trend: Rebound</div>
+
+                <div class="best-item">Price: HK$489.20</div>
+                <div class="best-item">RSI: 29.54 🔥 Oversold</div>
+
+                <div class="best-item">Day: HK$496 / HK$485</div>
+                <div class="best-item">Week: HK$504 / HK$476</div>
+
+                <div class="best-item">Month: HK$578 / HK$476</div>
+                <div class="best-item">Reason: Rebound from oversold</div>
+            </div>
         </div>
-    </div>
 
-    <!-- BEST TRADE -->
-    <div class="card">
-        <h2>🔥 Best Trade Right Now</h2>
-        <div class="time">Updated: {{ now }}</div>
+        <!-- ===== TABLE ===== -->
+        <div class="card">
+            <h2>All Stocks (Ranked)</h2>
 
-        <div class="best-title">{{ best.name }}</div>
-        <div class="best-sub">{{ best.symbol }} | {{ best.market }} | {{ best.currency }}</div>
+            <div class="table-wrapper">
+                <table>
+                    <tr>
+                        <th>#</th>
+                        <th>Company</th>
+                        <th>Ticker</th>
+                        <th>Exchange</th>
+                        <th>Currency</th>
+                        <th>Signal</th>
+                        <th>Score</th>
+                    </tr>
 
-        <div class="best-grid">
+                    <tr>
+                        <td>1</td>
+                        <td>Tencent Holdings Ltd.</td>
+                        <td>0700.HK</td>
+                        <td>HKEX</td>
+                        <td>HKD</td>
+                        <td class="buy">BUY</td>
+                        <td>96.7</td>
+                    </tr>
 
-            <!-- COL 1 -->
-            <div class="mini">
-                <p><strong>Signal:</strong> <span class="{{ best.signal|lower }}">{{ best.signal }}</span></p>
-                <p><strong>Score:</strong> {{ best.score }}</p>
-                <p><strong>Confidence:</strong>
-                    <span class="{{ best.confidence_label|lower }}">{{ best.confidence_label }}</span>
-                    ({{ best.confidence }})
-                </p>
-                <p><strong>Trend:</strong> {{ best.trend }}</p>
-            </div>
+                    <tr>
+                        <td>2</td>
+                        <td>Microsoft Corporation</td>
+                        <td>MSFT</td>
+                        <td>NASDAQ</td>
+                        <td>USD</td>
+                        <td class="buy">BUY</td>
+                        <td>95.1</td>
+                    </tr>
 
-            <!-- COL 2 -->
-            <div class="mini">
-                <p><strong>Price:</strong> {{ best.price_display }}</p>
-                <p><strong>RSI:</strong> {{ best.rsi }}
-                    {% if best.rsi_flag == "Oversold" %}
-                        🔥 Oversold
-                    {% elif best.rsi_flag == "Overbought" %}
-                        ⚠️ Overbought
-                    {% endif %}
-                </p>
-                <p><strong>Reason:</strong> {{ best.reason }}</p>
-            </div>
+                    <tr>
+                        <td>3</td>
+                        <td>HSBC Holdings plc</td>
+                        <td>HSBA.L</td>
+                        <td>LSE</td>
+                        <td>GBP</td>
+                        <td class="buy">BUY</td>
+                        <td>76.6</td>
+                    </tr>
 
-            <!-- COL 3 -->
-            <div class="mini">
-                <p><strong>Day:</strong> {{ best.d_high_display }} / {{ best.d_low_display }}</p>
-                <p><strong>Week:</strong> {{ best.w_high_display }} / {{ best.w_low_display }}</p>
-                <p><strong>Month:</strong> {{ best.m_high_display }} / {{ best.m_low_display }}</p>
-            </div>
-
-        </div>
-    </div>
-
-</div>
-
-</body>
-</html>
+                    <tr>
+                        <td>4</td>
+                        <td>AstraZeneca plc</td>
+                        <td>AZN.L</td>
+                        <td>LSE</td>
+                        <td>GBP</td>
+                        <
