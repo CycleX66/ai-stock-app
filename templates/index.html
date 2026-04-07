@@ -4,9 +4,13 @@
     <title>Stock Signals</title>
     <style>
         body { background:#0f172a; color:#e2e8f0; font-family:Arial; }
+
         table { width:100%; border-collapse:collapse; }
+
         th, td { padding:10px; text-align:left; }
+
         th { background:#1e293b; }
+
         tr:nth-child(even) { background:#1e293b; }
 
         .buy { color:#22c55e; font-weight:bold; }
@@ -23,29 +27,49 @@
             margin-bottom:20px;
             border-radius:10px;
         }
+
+        .big {
+            font-size:22px;
+            font-weight:bold;
+        }
     </style>
 </head>
 <body>
 
+<!-- 🔥 TOP TRADE -->
 <div class="card">
-    <h2>🔥 Top Opportunity</h2>
-    <p><strong>{{ best.name }}</strong> ({{ best.symbol }})</p>
+    <h2>🔥 Best Trade Right Now</h2>
+
+    <div class="big">{{ best.name }} ({{ best.symbol }})</div>
+
     <p>{{ best.market }} | {{ best.currency }}</p>
-    <p>Signal: 
+
+    <p>
+        Signal:
         <span class="{{ best.signal|lower }}">
             {{ best.signal }}
         </span>
     </p>
-    <p>Score: {{ best.score }}</p>
-    <p>Trend: {{ best.trend }}</p>
-    <p>Price: {{ best.price_display }}</p>
+
+    <p><strong>Score:</strong> {{ best.score }}</p>
+    <p><strong>Trend:</strong> {{ best.trend }}</p>
+
+    <p><strong>Price:</strong> {{ best.price_display }}</p>
+
+    <p>
+        Day: {{ best.d_high_display }} / {{ best.d_low_display }} |
+        Week: {{ best.w_high_display }} / {{ best.w_low_display }} |
+        Month: {{ best.m_high_display }} / {{ best.m_low_display }}
+    </p>
 </div>
 
+<!-- 📊 TABLE -->
 <div class="card">
-<h2>Stocks</h2>
+<h2>All Stocks (Ranked)</h2>
 
 <table>
 <tr>
+    <th>#</th>
     <th>Company</th>
     <th>Ticker</th>
     <th>Exchange</th>
@@ -61,6 +85,8 @@
 
 {% for s in scored %}
 <tr class="{% if loop.index0 == 0 %}top{% endif %}">
+    <td>{{ loop.index }}</td>
+
     <td>{{ s.name }}</td>
     <td>{{ s.symbol }}</td>
     <td>{{ s.market }}</td>
