@@ -1,136 +1,181 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="60">
+    <title>AI Stock Signals</title>
 
-<title>AI Stock Signals</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: #e5e7eb;
+            margin: 0;
+            padding: 20px;
+        }
 
-<style>
-body {
-    font-family: Arial, sans-serif;
-    background: #0f172a;
-    color: #e5e7eb;
-    margin: 0;
-    padding: 20px;
-}
+        h1 {
+            margin: 0 0 20px 0;
+            text-align: center;
+        }
 
-/* ===== LAYOUT ===== */
-.container {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 20px;
-}
+        h2, h3 {
+            margin-top: 0;
+        }
 
-@media (min-width: 1000px) {
-    .container {
-        grid-template-columns: 2fr 1fr;
-    }
-}
+        .container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
 
-/* ===== CARDS ===== */
-.card {
-    background: #1e293b;
-    padding: 20px;
-    border-radius: 12px;
-}
+        .card {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 12px;
+            box-sizing: border-box;
+        }
 
-/* ===== BEST TRADE GRID ===== */
-.best-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 10px;
-}
+        .time {
+            color: #94a3b8;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
 
-@media (min-width: 700px) {
-    .best-grid {
-        grid-template-columns: 1fr 1fr;
-    }
-}
+        .best-sub {
+            color: #cbd5e1;
+            margin-bottom: 14px;
+        }
 
-.box {
-    background: #0f172a;
-    padding: 10px;
-    border-radius: 8px;
-}
+        .best-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
 
-/* ===== TABLE ===== */
-.table-wrapper {
-    overflow-x: auto;
-}
+        @media (min-width: 700px) {
+            .best-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
 
-table {
-    width: 100%;
-    min-width: 1200px;
-    border-collapse: collapse;
-}
+        @media (min-width: 1100px) {
+            .best-grid {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+        }
 
-th, td {
-    padding: 10px;
-    text-align: left;
-    white-space: nowrap;
-}
+        .mini {
+            background: #0f172a;
+            padding: 12px;
+            border-radius: 8px;
+        }
 
-th {
-    background: #334155;
-}
+        .mini p {
+            margin: 6px 0;
+            line-height: 1.4;
+        }
 
-tr:nth-child(even) {
-    background: #1e293b;
-}
+        .table-wrapper {
+            overflow-x: auto;
+        }
 
-/* ===== COLORS ===== */
-.buy { color: #22c55e; font-weight: bold; }
-.sell { color: #ef4444; font-weight: bold; }
-.hold { color: #eab308; font-weight: bold; }
+        table {
+            width: 100%;
+            min-width: 1100px;
+            border-collapse: collapse;
+        }
 
-h1, h2 { margin-top: 0; }
-</style>
+        th, td {
+            padding: 10px;
+            text-align: left;
+            vertical-align: top;
+            white-space: nowrap;
+        }
+
+        th {
+            background: #334155;
+        }
+
+        tr:nth-child(even) {
+            background: #0f172a;
+        }
+
+        .highlight {
+            background: #1d4ed8 !important;
+        }
+
+        .buy { color: #22c55e; font-weight: bold; }
+        .sell { color: #ef4444; font-weight: bold; }
+        .hold { color: #eab308; font-weight: bold; }
+
+        .high { color: #22c55e; font-weight: bold; }
+        .medium { color: #facc15; font-weight: bold; }
+        .low { color: #f87171; font-weight: bold; }
+
+        .oversold { color: #22c55e; font-weight: bold; }
+        .overbought { color: #ef4444; font-weight: bold; }
+        .neutral { color: #cbd5e1; }
+    </style>
 </head>
-
 <body>
 
-<h1>📈 AI Stock Signals</h1>
+    <h1>📈 AI Stock Signals</h1>
 
-<div class="container">
+    <div class="container">
 
-    <!-- ===== LEFT SIDE ===== -->
-    <div>
-
-        <!-- ===== BEST TRADE ===== -->
+        <!-- BEST TRADE FIRST -->
         <div class="card">
             <h2>🔥 Best Trade Right Now</h2>
+            <div class="time">Last updated: {{ now }}</div>
 
-            <h3>{{ best.company }} ({{ best.ticker }})</h3>
-            <p>{{ best.exchange }} | {{ best.currency }}</p>
+            <h3>{{ best.name }} ({{ best.symbol }})</h3>
+            <div class="best-sub">{{ best.market }} | {{ best.currency }}</div>
 
             <div class="best-grid">
+                <div class="mini">
+                    <p><strong>Signal:</strong> <span class="{{ best.signal|lower }}">{{ best.signal }}</span></p>
+                    <p><strong>Score:</strong> {{ best.score }}</p>
+                    <p>
+                        <strong>Confidence:</strong>
+                        <span class="{% if best.confidence_label == 'High' %}high{% elif best.confidence_label == 'Medium' %}medium{% else %}low{% endif %}">
+                            {{ best.confidence_label }}
+                        </span>
+                        ({{ best.confidence }})
+                    </p>
+                    <p><strong>Trend:</strong> {{ best.trend }}</p>
+                </div>
 
-                <div class="box">Signal: <span class="{{ best.signal|lower }}">{{ best.signal }}</span></div>
-                <div class="box">Score: {{ best.score }}</div>
+                <div class="mini">
+                    <p><strong>Price:</strong> {{ best.price_display }}</p>
+                    <p>
+                        <strong>RSI:</strong> {{ best.rsi }}
+                        {% if best.rsi_flag == "Oversold" %}
+                            <span class="oversold">🔥 Oversold</span>
+                        {% elif best.rsi_flag == "Overbought" %}
+                            <span class="overbought">⚠️ Overbought</span>
+                        {% else %}
+                            <span class="neutral">Neutral</span>
+                        {% endif %}
+                    </p>
+                    <p><strong>Reason:</strong> {{ best.reason }}</p>
+                </div>
 
-                <div class="box">Confidence: {{ best.confidence }}</div>
-                <div class="box">Trend: {{ best.trend }}</div>
-
-                <div class="box">Price: {{ best.price }}</div>
-                <div class="box">RSI: {{ best.rsi }}</div>
-
-                <div class="box">Day: {{ best.day }}</div>
-                <div class="box">Week: {{ best.week }}</div>
-
-                <div class="box">Month: {{ best.month }}</div>
-                <div class="box">Reason: {{ best.reason }}</div>
-
+                <div class="mini">
+                    <p><strong>Day:</strong> {{ best.d_high_display }} / {{ best.d_low_display }}</p>
+                    <p><strong>Week:</strong> {{ best.w_high_display }} / {{ best.w_low_display }}</p>
+                    <p><strong>Month:</strong> {{ best.m_high_display }} / {{ best.m_low_display }}</p>
+                </div>
             </div>
         </div>
 
-        <!-- ===== TABLE ===== -->
+        <!-- TABLE SECOND -->
         <div class="card">
             <h2>All Stocks (Ranked)</h2>
 
             <div class="table-wrapper">
                 <table>
-
                     <tr>
                         <th>#</th>
                         <th>Company</th>
@@ -139,33 +184,54 @@ h1, h2 { margin-top: 0; }
                         <th>Currency</th>
                         <th>Signal</th>
                         <th>Score</th>
+                        <th>Confidence</th>
                         <th>Trend</th>
                         <th>RSI</th>
+                        <th>Reason</th>
                         <th>Price</th>
+                        <th>Day</th>
+                        <th>Week</th>
+                        <th>Month</th>
                     </tr>
 
-                    {% for stock in stocks %}
-                    <tr>
+                    {% for stock in scored %}
+                    <tr {% if loop.index == 1 %}class="highlight"{% endif %}>
                         <td>{{ loop.index }}</td>
-                        <td>{{ stock.company }}</td>
-                        <td>{{ stock.ticker }}</td>
-                        <td>{{ stock.exchange }}</td>
+                        <td>{{ stock.name }}</td>
+                        <td>{{ stock.symbol }}</td>
+                        <td>{{ stock.market }}</td>
                         <td>{{ stock.currency }}</td>
                         <td class="{{ stock.signal|lower }}">{{ stock.signal }}</td>
                         <td>{{ stock.score }}</td>
+                        <td>
+                            <span class="{% if stock.confidence_label == 'High' %}high{% elif stock.confidence_label == 'Medium' %}medium{% else %}low{% endif %}">
+                                {{ stock.confidence_label }}
+                            </span>
+                            ({{ stock.confidence }})
+                        </td>
                         <td>{{ stock.trend }}</td>
-                        <td>{{ stock.rsi }}</td>
-                        <td>{{ stock.price }}</td>
+                        <td>
+                            {{ stock.rsi }}
+                            {% if stock.rsi_flag == "Oversold" %}
+                                <span class="oversold">🔥</span>
+                            {% elif stock.rsi_flag == "Overbought" %}
+                                <span class="overbought">⚠️</span>
+                            {% else %}
+                                <span class="neutral">•</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ stock.reason }}</td>
+                        <td>{{ stock.price_display }}</td>
+                        <td>{{ stock.d_high_display }} / {{ stock.d_low_display }}</td>
+                        <td>{{ stock.w_high_display }} / {{ stock.w_low_display }}</td>
+                        <td>{{ stock.m_high_display }} / {{ stock.m_low_display }}</td>
                     </tr>
                     {% endfor %}
-
                 </table>
             </div>
         </div>
 
     </div>
-
-</div>
 
 </body>
 </html>
