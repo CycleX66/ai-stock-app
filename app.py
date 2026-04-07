@@ -117,16 +117,16 @@ def get_signal(price, ma50, ma200, rsi):
         return "HOLD", 40, "Flat"
 
     trend = "Flat"
-    if ma200 is not None:
-        if price > ma50 and ma50 > ma200:
-            trend = "Up"
-        elif price < ma50 and ma50 < ma200:
-            trend = "Down"
 
     if ma200 is None:
         if price > ma50:
             trend = "Up"
         elif price < ma50:
+            trend = "Down"
+    else:
+        if price > ma50 and ma50 > ma200:
+            trend = "Up"
+        elif price < ma50 and ma50 < ma200:
             trend = "Down"
 
     if rsi is None:
@@ -137,20 +137,20 @@ def get_signal(price, ma50, ma200, rsi):
         return "HOLD", 50, trend
 
     if trend == "Up" and rsi < 70:
-        score = 75
+        confidence = 75
         if rsi <= 35:
-            score = 90
+            confidence = 90
         elif rsi <= 45:
-            score = 82
-        return "BUY", score, trend
+            confidence = 82
+        return "BUY", confidence, trend
 
     if trend == "Down" and rsi > 30:
-        score = 75
+        confidence = 75
         if rsi >= 65:
-            score = 90
+            confidence = 90
         elif rsi >= 55:
-            score = 82
-        return "SELL", score, trend
+            confidence = 82
+        return "SELL", confidence, trend
 
     if rsi <= 30:
         return "BUY", 80, "Rebound"
@@ -190,6 +190,51 @@ def score(signal, confidence, price, high, low, rsi):
         pass
 
     return round(base, 1)
+
+def get_reason(signal, trend, rsi_value, rsi_flag, price, month_high, month_low):
+    reasons = []
+
+    if trend == "Up":
+        reasons.append("uptrend")
+    elif trend == "Down":
+        reasons.append("downtrend")
+    elif trend == "Rebound":
+        reasons.append("rebound setup")
+    elif trend == "Stretched":
+        reasons.append("stretched move")
+
+    if rsi_flag == "Oversold":
+        reasons.append("oversold RSI")
+    elif rsi_flag == "Overbought":
+        reasons.append("overbought RSI")
+    elif rsi_flag == "Neutral" and rsi_value is not None:
+        reasons.append("neutral RSI")
+
+    try:
+        if price is not None and month_high is not None and month_low is not None and month_high > month_low:
+            pos = (price - month_low) / (month_high - month_low)
+            if pos <= 0.25:
+                reasons.append("near monthly low")
+            elif pos >= 0.75:
+                reasons.append("near monthly high")
+            else:
+                reasons.append("mid monthly range")
+    except Exception:
+        pass
+
+    if signal == "BUY" and "oversold RSI" in reasons:
+        return "Rebound from oversold conditions"
+    if signal == "SELL" and "overbought RSI" in reasons:
+        return "Overbought with downside risk"
+
+    return ", ".join(reasons[:2]) if reasons else "Mixed signals"
+
+def confidence_label(value):
+    if value >= 85:
+        return "High"
+    if value >= 65:
+        return "Medium"
+    return "Low"
 
 @app.route("/")
 def index():
@@ -249,6 +294,8 @@ def index():
             m12_low = clean(hist["Low"].min())
 
             sc = score(sig, conf, price, raw(m_high), raw(m_low), rsi_value)
+            conf_label = confidence_label(conf)
+            reason = get_reason(sig, trend, rsi_value, rsi_flag, price, raw(m_high), raw(m_low))
 
             results.append({
                 **s,
@@ -256,10 +303,12 @@ def index():
                 "price_display": money(clean(price), s["currency"]),
                 "signal": sig,
                 "confidence": conf,
+                "confidence_label": conf_label,
                 "score": sc,
                 "trend": trend,
                 "rsi": rsi_text,
                 "rsi_flag": rsi_flag,
+                "reason": reason,
 
                 "d_high_display": money(d_high, s["currency"]),
                 "d_low_display": money(d_low, s["currency"]),
