@@ -18,18 +18,23 @@
             margin-bottom: 20px;
         }
 
+        /* MAIN GRID (FIXED) */
         .container {
-            display: flex;
-            flex-direction: column;
+            display: grid;
+            grid-template-columns: 1fr;
             gap: 20px;
+        }
+
+        @media (min-width: 700px) {
+            .container {
+                grid-template-columns: 2fr 1fr;
+            }
         }
 
         .card {
             background: #121826;
             padding: 20px;
             border-radius: 10px;
-            width: 100%;
-            box-sizing: border-box;
         }
 
         .buy { color: #00ff88; font-weight: bold; }
@@ -39,7 +44,6 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
         }
 
         th, td {
@@ -59,7 +63,7 @@
             background: #1e3a8a !important;
         }
 
-        /* BEST TRADE GRID */
+        /* BEST TRADE GRID (FIXED) */
         .best-grid {
             display: grid;
             grid-template-columns: 1fr;
@@ -67,24 +71,12 @@
             margin-top: 15px;
         }
 
-        /* TABLET + DESKTOP */
         @media (min-width: 700px) {
-            .container {
-                flex-direction: row;
-            }
-
-            .left {
-                width: 65%;
-            }
-
-            .right {
-                width: 35%;
-            }
-
             .best-grid {
                 grid-template-columns: 1fr 1fr 1fr;
             }
         }
+
     </style>
 </head>
 
@@ -95,7 +87,7 @@
 <div class="container">
 
     <!-- LEFT: TABLE -->
-    <div class="card left">
+    <div class="card">
         <h2>All Stocks (Ranked)</h2>
 
         <table>
@@ -124,7 +116,7 @@
     </div>
 
     <!-- RIGHT: BEST TRADE -->
-    <div class="card right">
+    <div class="card">
         <h2>🔥 Best Trade Right Now</h2>
 
         <h3>{{ best.name }} ({{ best.ticker }})</h3>
