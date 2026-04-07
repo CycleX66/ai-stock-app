@@ -47,25 +47,27 @@ def format_money(value, currency):
     if value == "-" or value is None:
         return "-"
     symbol = currency_symbol(currency)
-    return f"{symbol}{value:,.2f}"
+    return f"{symbol}{float(value):,.2f}"
 
 def get_signal(price, ma50, ma200):
     if price is None:
-        return "HOLD", 0
+        return "HOLD", 0, "Flat"
+
     if ma50 is None:
-        return "HOLD", 40
+        return "HOLD", 40, "Flat"
+
     if ma200 is None:
         if price > ma50:
-            return "BUY", 65
+            return "BUY", 65, "Up"
         if price < ma50:
-            return "SELL", 65
-        return "HOLD", 50
+            return "SELL", 65, "Down"
+        return "HOLD", 50, "Flat"
 
     if price > ma50 and ma50 > ma200:
-        return "BUY", 85
+        return "BUY", 85, "Up"
     if price < ma50 and ma50 < ma200:
-        return "SELL", 85
-    return "HOLD", 55
+        return "SELL", 85, "Down"
+    return "HOLD", 55, "Flat"
 
 def range_high_low(hist, days):
     sub = hist.tail(days)
@@ -115,16 +117,46 @@ def get_best_price(ticker, hist):
 
     return None
 
-def signal_rank(s):
-    if s["signal"] == "BUY":
-        return (3, s["confidence"])
-    if s["signal"] == "SELL":
-        return (2, s["confidence"])
-    return (1, s["confidence"])
+def opportunity_score(signal, confidence, price, month_high, month_low):
+    if price is None or month_high is None or month_low is None:
+        return confidence
+
+    try:
+        rng = month_high - month_low
+        if rng <= 0:
+            return confidence
+
+        position = (price - month_low) / rng
+
+        if signal == "BUY":
+            bonus = (1 - position) * 15
+            return round(confidence + bonus, 1)
+
+        if signal == "SELL":
+            bonus = position * 15
+            return round(confidence + bonus, 1)
+
+        distance_from_middle = abs(position - 0.5)
+        return round(confidence - distance_from_middle * 10, 1)
+
+    except Exception:
+        return confidence
+
+def signal_rank(item):
+    signal_order = {
+        "BUY": 3,
+        "HOLD": 2,
+        "SELL": 1,
+    }
+    return (
+        signal_order.get(item["signal"], 0),
+        item["score"],
+        item["confidence"]
+    )
 
 @app.route("/")
 def index():
-    selected_symbol = request.args.get("symbol", stocks[0]["symbol"])
+    selected_symbol = request.args.get("symbol")
     scored = []
 
     for s in stocks:
@@ -139,6 +171,8 @@ def index():
                     "price_display": "-",
                     "signal": "HOLD",
                     "confidence": 0,
+                    "score": 0,
+                    "trend": "Flat",
                     "d_high": "-",
                     "d_low": "-",
                     "d_high_display": "-",
@@ -184,7 +218,7 @@ def index():
             ma50 = close_for_ma.rolling(50).mean().iloc[-1] if len(close_for_ma) >= 50 else None
             ma200 = close_for_ma.rolling(200).mean().iloc[-1] if len(close_for_ma) >= 200 else None
 
-            signal, confidence = get_signal(price_raw, raw_num(ma50), raw_num(ma200))
+            signal, confidence, trend = get_signal(price_raw, raw_num(ma50), raw_num(ma200))
 
             d_high = clean_num(hist["High"].iloc[-1]) if not hist.empty else "-"
             d_low = clean_num(hist["Low"].iloc[-1]) if not hist.empty else "-"
@@ -197,12 +231,22 @@ def index():
             m12_high = clean_num(hist["High"].max()) if not hist.empty else "-"
             m12_low = clean_num(hist["Low"].min()) if not hist.empty else "-"
 
+            score = opportunity_score(
+                signal=signal,
+                confidence=confidence,
+                price=raw_num(price_raw),
+                month_high=raw_num(m_high),
+                month_low=raw_num(m_low),
+            )
+
             scored.append({
                 **s,
                 "price": clean_num(price_raw),
                 "price_display": format_money(clean_num(price_raw), s["currency"]),
                 "signal": signal,
                 "confidence": confidence,
+                "score": score,
+                "trend": trend,
 
                 "d_high": d_high,
                 "d_low": d_low,
@@ -248,6 +292,8 @@ def index():
                 "price_display": "-",
                 "signal": "HOLD",
                 "confidence": 0,
+                "score": 0,
+                "trend": "Flat",
                 "d_high": "-",
                 "d_low": "-",
                 "d_high_display": "-",
@@ -281,7 +327,10 @@ def index():
 
     scored = sorted(scored, key=signal_rank, reverse=True)
 
-    best = next((s for s in scored if s["symbol"] == selected_symbol), scored[0])
+    if selected_symbol:
+        best = next((s for s in scored if s["symbol"] == selected_symbol), scored[0])
+    else:
+        best = scored[0]
 
     return render_template(
         "index.html",
