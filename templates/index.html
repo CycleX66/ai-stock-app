@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>AI Stock Signals</title>
 
 <style>
@@ -23,34 +24,33 @@ body {
 
 @media (min-width: 1000px) {
     .container {
-        grid-template-columns: 1.5fr 1fr;
+        grid-template-columns: 2fr 1fr;
     }
 }
 
-/* ===== CARD ===== */
+/* ===== CARDS ===== */
 .card {
     background: #1e293b;
     padding: 20px;
     border-radius: 12px;
-    box-shadow: 0 0 20px rgba(0,0,0,0.3);
 }
 
-/* ===== BEST TRADE ===== */
-.best-trade {
+/* ===== BEST TRADE GRID ===== */
+.best-grid {
     display: grid;
     grid-template-columns: 1fr;
     gap: 10px;
 }
 
 @media (min-width: 700px) {
-    .best-trade {
+    .best-grid {
         grid-template-columns: 1fr 1fr;
     }
 }
 
-.best-item {
+.box {
     background: #0f172a;
-    padding: 12px;
+    padding: 10px;
     border-radius: 8px;
 }
 
@@ -61,13 +61,14 @@ body {
 
 table {
     width: 100%;
-    min-width: 1100px;
+    min-width: 1200px;
     border-collapse: collapse;
 }
 
 th, td {
     padding: 10px;
     text-align: left;
+    white-space: nowrap;
 }
 
 th {
@@ -83,9 +84,7 @@ tr:nth-child(even) {
 .sell { color: #ef4444; font-weight: bold; }
 .hold { color: #eab308; font-weight: bold; }
 
-h1, h2 {
-    margin-top: 0;
-}
+h1, h2 { margin-top: 0; }
 </style>
 </head>
 
@@ -102,24 +101,26 @@ h1, h2 {
         <div class="card">
             <h2>🔥 Best Trade Right Now</h2>
 
-            <h3>Tencent Holdings Ltd. (0700.HK)</h3>
-            <p>HKEX | HKD</p>
+            <h3>{{ best.company }} ({{ best.ticker }})</h3>
+            <p>{{ best.exchange }} | {{ best.currency }}</p>
 
-            <div class="best-trade">
-                <div class="best-item">Signal: <span class="buy">BUY</span></div>
-                <div class="best-item">Score: 96.7</div>
+            <div class="best-grid">
 
-                <div class="best-item">Confidence: Medium (80)</div>
-                <div class="best-item">Trend: Rebound</div>
+                <div class="box">Signal: <span class="{{ best.signal|lower }}">{{ best.signal }}</span></div>
+                <div class="box">Score: {{ best.score }}</div>
 
-                <div class="best-item">Price: HK$489.20</div>
-                <div class="best-item">RSI: 29.54 🔥 Oversold</div>
+                <div class="box">Confidence: {{ best.confidence }}</div>
+                <div class="box">Trend: {{ best.trend }}</div>
 
-                <div class="best-item">Day: HK$496 / HK$485</div>
-                <div class="best-item">Week: HK$504 / HK$476</div>
+                <div class="box">Price: {{ best.price }}</div>
+                <div class="box">RSI: {{ best.rsi }}</div>
 
-                <div class="best-item">Month: HK$578 / HK$476</div>
-                <div class="best-item">Reason: Rebound from oversold</div>
+                <div class="box">Day: {{ best.day }}</div>
+                <div class="box">Week: {{ best.week }}</div>
+
+                <div class="box">Month: {{ best.month }}</div>
+                <div class="box">Reason: {{ best.reason }}</div>
+
             </div>
         </div>
 
@@ -129,6 +130,7 @@ h1, h2 {
 
             <div class="table-wrapper">
                 <table>
+
                     <tr>
                         <th>#</th>
                         <th>Company</th>
@@ -137,42 +139,33 @@ h1, h2 {
                         <th>Currency</th>
                         <th>Signal</th>
                         <th>Score</th>
+                        <th>Trend</th>
+                        <th>RSI</th>
+                        <th>Price</th>
                     </tr>
 
+                    {% for stock in stocks %}
                     <tr>
-                        <td>1</td>
-                        <td>Tencent Holdings Ltd.</td>
-                        <td>0700.HK</td>
-                        <td>HKEX</td>
-                        <td>HKD</td>
-                        <td class="buy">BUY</td>
-                        <td>96.7</td>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ stock.company }}</td>
+                        <td>{{ stock.ticker }}</td>
+                        <td>{{ stock.exchange }}</td>
+                        <td>{{ stock.currency }}</td>
+                        <td class="{{ stock.signal|lower }}">{{ stock.signal }}</td>
+                        <td>{{ stock.score }}</td>
+                        <td>{{ stock.trend }}</td>
+                        <td>{{ stock.rsi }}</td>
+                        <td>{{ stock.price }}</td>
                     </tr>
+                    {% endfor %}
 
-                    <tr>
-                        <td>2</td>
-                        <td>Microsoft Corporation</td>
-                        <td>MSFT</td>
-                        <td>NASDAQ</td>
-                        <td>USD</td>
-                        <td class="buy">BUY</td>
-                        <td>95.1</td>
-                    </tr>
+                </table>
+            </div>
+        </div>
 
-                    <tr>
-                        <td>3</td>
-                        <td>HSBC Holdings plc</td>
-                        <td>HSBA.L</td>
-                        <td>LSE</td>
-                        <td>GBP</td>
-                        <td class="buy">BUY</td>
-                        <td>76.6</td>
-                    </tr>
+    </div>
 
-                    <tr>
-                        <td>4</td>
-                        <td>AstraZeneca plc</td>
-                        <td>AZN.L</td>
-                        <td>LSE</td>
-                        <td>GBP</td>
-                        <
+</div>
+
+</body>
+</html>
