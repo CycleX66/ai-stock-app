@@ -1,125 +1,140 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>AI Stock Dashboard</title>
-
-    <!-- AUTO REFRESH -->
-    <meta http-equiv="refresh" content="60">
+    <title>AI Stock Signals</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: Arial;
             background: #0b0f1a;
             color: white;
-            padding: 20px;
+            margin: 0;
+            padding: 10px;
         }
 
-        .card {
-            background: #111827;
-            padding: 20px;
-            border-radius: 12px;
+        h1 {
+            text-align: center;
             margin-bottom: 20px;
         }
 
-        h2 {
-            margin-bottom: 10px;
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
 
-        .time {
-            color: #9ca3af;
-            font-size: 14px;
-            margin-bottom: 10px;
+        .card {
+            background: #121826;
+            padding: 20px;
+            border-radius: 10px;
+            width: 100%;
+            box-sizing: border-box;
         }
 
-        .buy { color: #22c55e; font-weight: bold; }
-        .sell { color: #ef4444; font-weight: bold; }
-        .hold { color: #facc15; font-weight: bold; }
-
-        .oversold { color: #22c55e; }
-        .overbought { color: #ef4444; }
+        .buy { color: #00ff88; font-weight: bold; }
+        .sell { color: #ff4d4d; font-weight: bold; }
+        .hold { color: #ffaa00; font-weight: bold; }
 
         table {
             width: 100%;
             border-collapse: collapse;
+            margin-top: 10px;
         }
 
         th, td {
             padding: 10px;
-            border-bottom: 1px solid #1f2937;
+            text-align: left;
         }
 
-        tr:hover {
+        th {
             background: #1f2937;
+        }
+
+        tr:nth-child(even) {
+            background: #0f172a;
+        }
+
+        .highlight {
+            background: #1e3a8a !important;
+        }
+
+        @media (min-width: 900px) {
+            .container {
+                flex-direction: row;
+            }
+
+            .left {
+                width: 60%;
+            }
+
+            .right {
+                width: 40%;
+            }
         }
     </style>
 </head>
+
 <body>
 
-<div class="card">
-    <h2>🔥 Best Trade Right Now</h2>
+<h1>📈 AI Stock Signals</h1>
 
-    <div class="time">
-        Last updated: {{ now }}
+<div class="container">
+
+    <!-- LEFT: TABLE -->
+    <div class="card left">
+        <h2>All Stocks (Ranked)</h2>
+
+        <table>
+            <tr>
+                <th>#</th>
+                <th>Company</th>
+                <th>Ticker</th>
+                <th>Exchange</th>
+                <th>Currency</th>
+                <th>Signal</th>
+                <th>Score</th>
+            </tr>
+
+            {% for stock in stocks %}
+            <tr {% if loop.index == 1 %}class="highlight"{% endif %}>
+                <td>{{ loop.index }}</td>
+                <td>{{ stock.name }}</td>
+                <td>{{ stock.ticker }}</td>
+                <td>{{ stock.exchange }}</td>
+                <td>{{ stock.currency }}</td>
+                <td class="{{ stock.signal|lower }}">{{ stock.signal }}</td>
+                <td>{{ stock.score }}</td>
+            </tr>
+            {% endfor %}
+        </table>
     </div>
 
-    <h3>{{ best.name }} ({{ best.symbol }})</h3>
-    <p>{{ best.market }} | {{ best.currency }}</p>
+    <!-- RIGHT: BEST TRADE -->
+    <div class="card right">
+        <h2>🔥 Best Trade Right Now</h2>
 
-    <p>
-        Signal:
-        <span class="{% if best.signal=='BUY' %}buy{% elif best.signal=='SELL' %}sell{% else %}hold{% endif %}">
-            {{ best.signal }}
-        </span>
-    </p>
+        <h3>{{ best.name }} ({{ best.ticker }})</h3>
 
-    <p>Score: {{ best.score }}</p>
-    <p>Confidence: {{ best.confidence_label }} ({{ best.confidence }})</p>
-    <p>Trend: {{ best.trend }}</p>
-    <p>Reason: {{ best.reason }}</p>
-    <p>Price: {{ best.price_display }}</p>
+        <p><b>Exchange:</b> {{ best.exchange }} | {{ best.currency }}</p>
+        <p><b>Signal:</b> <span class="{{ best.signal|lower }}">{{ best.signal }}</span></p>
+        <p><b>Score:</b> {{ best.score }}</p>
+        <p><b>Trend:</b> {{ best.trend }}</p>
+        <p><b>Confidence:</b> {{ best.confidence }}</p>
 
-    <p>
-        RSI: {{ best.rsi }}
-        {% if best.rsi_flag == "Oversold" %}
-            <span class="oversold">🔥 Oversold</span>
-        {% elif best.rsi_flag == "Overbought" %}
-            <span class="overbought">⚠️ Overbought</span>
-        {% endif %}
-    </p>
+        <hr>
 
-    <p>Day: {{ best.d_high_display }} / {{ best.d_low_display }}</p>
-    <p>Week: {{ best.w_high_display }} / {{ best.w_low_display }}</p>
-    <p>Month: {{ best.m_high_display }} / {{ best.m_low_display }}</p>
-</div>
+        <p><b>Price:</b> {{ best.price }}</p>
+        <p><b>RSI:</b> {{ best.rsi }}</p>
+        <p><b>Reason:</b> {{ best.reason }}</p>
 
-<div class="card">
-    <h2>All Stocks (Ranked)</h2>
+        <hr>
 
-    <table>
-        <tr>
-            <th>#</th>
-            <th>Company</th>
-            <th>Signal</th>
-            <th>Score</th>
-            <th>RSI</th>
-            <th>Price</th>
-        </tr>
+        <p><b>Day:</b> {{ best.day }}</p>
+        <p><b>Week:</b> {{ best.week }}</p>
+        <p><b>Month:</b> {{ best.month }}</p>
+    </div>
 
-        {% for s in scored %}
-        <tr>
-            <td>{{ loop.index }}</td>
-            <td>{{ s.name }}</td>
-
-            <td class="{% if s.signal=='BUY' %}buy{% elif s.signal=='SELL' %}sell{% else %}hold{% endif %}">
-                {{ s.signal }}
-            </td>
-
-            <td>{{ s.score }}</td>
-            <td>{{ s.rsi }}</td>
-            <td>{{ s.price_display }}</td>
-        </tr>
-        {% endfor %}
-    </table>
 </div>
 
 </body>
