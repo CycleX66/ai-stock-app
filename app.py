@@ -239,7 +239,7 @@ def confidence_label(value):
 
 @app.route("/")
 def index():
-    results = []
+    scored = []
 
     for s in stocks:
         try:
@@ -262,6 +262,8 @@ def index():
             price = get_best_price(t, hist)
 
             close_series = pd.to_numeric(hist["Close"], errors="coerce").dropna()
+            if close_series.empty:
+                continue
 
             ma50 = close_series.rolling(50).mean().iloc[-1] if len(close_series) >= 50 else None
             ma200 = close_series.rolling(200).mean().iloc[-1] if len(close_series) >= 200 else None
@@ -282,49 +284,30 @@ def index():
             m_high = clean(hist["High"].tail(22).max())
             m_low = clean(hist["Low"].tail(22).min())
 
-            m3_high = clean(hist["High"].tail(66).max())
-            m3_low = clean(hist["Low"].tail(66).min())
-
-            m6_high = clean(hist["High"].tail(132).max())
-            m6_low = clean(hist["Low"].tail(132).min())
-
-            m9_high = clean(hist["High"].tail(198).max())
-            m9_low = clean(hist["Low"].tail(198).min())
-
-            m12_high = clean(hist["High"].max())
-            m12_low = clean(hist["Low"].min())
-
             sc = score(sig, conf, price, raw(m_high), raw(m_low), rsi_value)
             conf_label = confidence_label(conf)
             reason = get_reason(sig, trend, rsi_value, rsi_flag, price, raw(m_high), raw(m_low))
 
-            results.append({
-                **s,
-                "price": clean(price),
-                "price_display": money(clean(price), s["currency"]),
+            scored.append({
+                "name": s["name"],
+                "symbol": s["symbol"],
+                "market": s["market"],
+                "currency": s["currency"],
                 "signal": sig,
+                "score": sc,
                 "confidence": conf,
                 "confidence_label": conf_label,
-                "score": sc,
                 "trend": trend,
                 "rsi": rsi_text,
                 "rsi_flag": rsi_flag,
                 "reason": reason,
-
+                "price_display": money(clean(price), s["currency"]),
                 "d_high_display": money(d_high, s["currency"]),
                 "d_low_display": money(d_low, s["currency"]),
                 "w_high_display": money(w_high, s["currency"]),
                 "w_low_display": money(w_low, s["currency"]),
                 "m_high_display": money(m_high, s["currency"]),
                 "m_low_display": money(m_low, s["currency"]),
-                "m3_high_display": money(m3_high, s["currency"]),
-                "m3_low_display": money(m3_low, s["currency"]),
-                "m6_high_display": money(m6_high, s["currency"]),
-                "m6_low_display": money(m6_low, s["currency"]),
-                "m9_high_display": money(m9_high, s["currency"]),
-                "m9_low_display": money(m9_low, s["currency"]),
-                "m12_high_display": money(m12_high, s["currency"]),
-                "m12_low_display": money(m12_low, s["currency"]),
             })
 
         except Exception:
@@ -332,22 +315,42 @@ def index():
 
     signal_order = {"BUY": 3, "HOLD": 2, "SELL": 1}
 
-    results = sorted(
-        results,
+    scored = sorted(
+        scored,
         key=lambda x: (signal_order.get(x["signal"], 0), x["score"]),
         reverse=True
     )
 
-    buy_stocks = [r for r in results if r["signal"] == "BUY"]
+    buy_stocks = [r for r in scored if r["signal"] == "BUY"]
 
     if buy_stocks:
         best = sorted(buy_stocks, key=lambda x: x["score"], reverse=True)[0]
     else:
-        best = results[0]
+        best = scored[0] if scored else {
+            "name": "No data",
+            "symbol": "-",
+            "market": "-",
+            "currency": "-",
+            "signal": "HOLD",
+            "score": 0,
+            "confidence": 0,
+            "confidence_label": "Low",
+            "trend": "-",
+            "rsi": "-",
+            "rsi_flag": "Unknown",
+            "reason": "No data available",
+            "price_display": "-",
+            "d_high_display": "-",
+            "d_low_display": "-",
+            "w_high_display": "-",
+            "w_low_display": "-",
+            "m_high_display": "-",
+            "m_low_display": "-",
+        }
 
     return render_template(
         "index.html",
-        scored=results,
+        scored=scored,
         best=best,
         now=datetime.now().strftime("%H:%M:%S")
     )
