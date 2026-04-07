@@ -46,49 +46,6 @@ def money(v, c):
         return "-"
     return f"{currency_symbol(c)}{float(v):,.2f}"
 
-def get_signal(price, ma50, ma200):
-    if price is None:
-        return "HOLD", 0, "Flat"
-
-    if ma50 is None:
-        return "HOLD", 40, "Flat"
-
-    if ma200 is None:
-        if price > ma50:
-            return "BUY", 65, "Up"
-        if price < ma50:
-            return "SELL", 65, "Down"
-        return "HOLD", 50, "Flat"
-
-    if price > ma50 and ma50 > ma200:
-        return "BUY", 85, "Up"
-
-    if price < ma50 and ma50 < ma200:
-        return "SELL", 85, "Down"
-
-    return "HOLD", 55, "Flat"
-
-def score(signal, confidence, price, high, low):
-    if price is None or high is None or low is None:
-        return confidence
-
-    try:
-        rng = high - low
-        if rng <= 0:
-            return confidence
-
-        pos = (price - low) / rng
-
-        if signal == "BUY":
-            return round(confidence + (1 - pos) * 15, 1)
-
-        if signal == "SELL":
-            return round(confidence + pos * 15, 1)
-
-        return round(confidence - abs(pos - 0.5) * 10, 1)
-    except Exception:
-        return confidence
-
 def get_best_price(ticker, hist):
     try:
         close_series = pd.to_numeric(hist["Close"], errors="coerce").dropna()
@@ -131,6 +88,109 @@ def get_best_price(ticker, hist):
 
     return None
 
+def compute_rsi(close_series, period=14):
+    delta = close_series.diff()
+    gain = delta.clip(lower=0)
+    loss = -delta.clip(upper=0)
+
+    avg_gain = gain.rolling(period).mean()
+    avg_loss = loss.rolling(period).mean()
+
+    rs = avg_gain / avg_loss
+    rsi = 100 - (100 / (1 + rs))
+    return rsi
+
+def rsi_status(rsi):
+    if rsi is None:
+        return "Unknown"
+    if rsi <= 30:
+        return "Oversold"
+    if rsi >= 70:
+        return "Overbought"
+    return "Neutral"
+
+def get_signal(price, ma50, ma200, rsi):
+    if price is None:
+        return "HOLD", 0, "Flat"
+
+    if ma50 is None:
+        return "HOLD", 40, "Flat"
+
+    trend = "Flat"
+    if ma200 is not None:
+        if price > ma50 and ma50 > ma200:
+            trend = "Up"
+        elif price < ma50 and ma50 < ma200:
+            trend = "Down"
+
+    if ma200 is None:
+        if price > ma50:
+            trend = "Up"
+        elif price < ma50:
+            trend = "Down"
+
+    if rsi is None:
+        if trend == "Up":
+            return "BUY", 70, trend
+        if trend == "Down":
+            return "SELL", 70, trend
+        return "HOLD", 50, trend
+
+    if trend == "Up" and rsi < 70:
+        score = 75
+        if rsi <= 35:
+            score = 90
+        elif rsi <= 45:
+            score = 82
+        return "BUY", score, trend
+
+    if trend == "Down" and rsi > 30:
+        score = 75
+        if rsi >= 65:
+            score = 90
+        elif rsi >= 55:
+            score = 82
+        return "SELL", score, trend
+
+    if rsi <= 30:
+        return "BUY", 80, "Rebound"
+
+    if rsi >= 70:
+        return "SELL", 80, "Stretched"
+
+    return "HOLD", 55, trend
+
+def score(signal, confidence, price, high, low, rsi):
+    base = confidence
+
+    try:
+        if price is not None and high is not None and low is not None:
+            rng = high - low
+            if rng > 0:
+                pos = (price - low) / rng
+
+                if signal == "BUY":
+                    base += (1 - pos) * 10
+                elif signal == "SELL":
+                    base += pos * 10
+                else:
+                    base -= abs(pos - 0.5) * 6
+    except Exception:
+        pass
+
+    try:
+        if rsi is not None:
+            if signal == "BUY" and rsi <= 35:
+                base += 8
+            elif signal == "SELL" and rsi >= 65:
+                base += 8
+            elif signal == "HOLD" and 45 <= rsi <= 55:
+                base += 3
+    except Exception:
+        pass
+
+    return round(base, 1)
+
 @app.route("/")
 def index():
     results = []
@@ -156,10 +216,16 @@ def index():
             price = get_best_price(t, hist)
 
             close_series = pd.to_numeric(hist["Close"], errors="coerce").dropna()
+
             ma50 = close_series.rolling(50).mean().iloc[-1] if len(close_series) >= 50 else None
             ma200 = close_series.rolling(200).mean().iloc[-1] if len(close_series) >= 200 else None
 
-            sig, conf, trend = get_signal(price, raw(ma50), raw(ma200))
+            rsi_series = compute_rsi(close_series)
+            rsi_value = raw(rsi_series.iloc[-1]) if not rsi_series.empty else None
+            rsi_text = clean(rsi_value)
+            rsi_flag = rsi_status(rsi_value)
+
+            sig, conf, trend = get_signal(price, raw(ma50), raw(ma200), rsi_value)
 
             d_high = clean(hist["High"].iloc[-1])
             d_low = clean(hist["Low"].iloc[-1])
@@ -182,7 +248,7 @@ def index():
             m12_high = clean(hist["High"].max())
             m12_low = clean(hist["Low"].min())
 
-            sc = score(sig, conf, price, raw(m_high), raw(m_low))
+            sc = score(sig, conf, price, raw(m_high), raw(m_low), rsi_value)
 
             results.append({
                 **s,
@@ -192,6 +258,9 @@ def index():
                 "confidence": conf,
                 "score": sc,
                 "trend": trend,
+                "rsi": rsi_text,
+                "rsi_flag": rsi_flag,
+
                 "d_high_display": money(d_high, s["currency"]),
                 "d_low_display": money(d_low, s["currency"]),
                 "w_high_display": money(w_high, s["currency"]),
