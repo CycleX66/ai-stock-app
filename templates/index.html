@@ -16,7 +16,7 @@
 
         h1 {
             text-align: center;
-            margin: 0 0 20px 0;
+            margin-bottom: 20px;
         }
 
         .container {
@@ -35,45 +35,52 @@
             background: #121826;
             padding: 20px;
             border-radius: 10px;
-            overflow: hidden;
-            box-sizing: border-box;
         }
 
         .buy { color: #00ff88; font-weight: bold; }
         .sell { color: #ff4d4d; font-weight: bold; }
         .hold { color: #ffaa00; font-weight: bold; }
 
-        .high { color: #00ff88; font-weight: bold; }
-        .medium { color: #ffd166; font-weight: bold; }
-        .low { color: #ff6b6b; font-weight: bold; }
+        .high { color: #00ff88; }
+        .medium { color: #ffd166; }
+        .low { color: #ff6b6b; }
 
-        .oversold { color: #00ff88; font-weight: bold; }
-        .overbought { color: #ff4d4d; font-weight: bold; }
-        .neutral { color: #cbd5e1; }
+        .oversold { color: #00ff88; }
+        .overbought { color: #ff4d4d; }
 
         .time {
             color: #9ca3af;
             font-size: 14px;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
 
         .best-title {
-            margin: 0 0 8px 0;
-            font-size: 28px;
+            font-size: 26px;
             font-weight: bold;
+            margin-bottom: 6px;
         }
 
         .best-sub {
-            margin: 0 0 16px 0;
             color: #cbd5e1;
-            font-size: 18px;
+            margin-bottom: 12px;
         }
 
         .best-grid {
             display: grid;
             grid-template-columns: 1fr;
-            gap: 14px;
-            margin-top: 14px;
+            gap: 12px;
+        }
+
+        @media (min-width: 700px) {
+            .best-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (min-width: 1100px) {
+            .best-grid {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
         }
 
         .mini {
@@ -84,7 +91,6 @@
 
         .mini p {
             margin: 6px 0;
-            line-height: 1.4;
         }
 
         .table-wrapper {
@@ -95,13 +101,11 @@
             width: 100%;
             min-width: 1100px;
             border-collapse: collapse;
-            white-space: nowrap;
         }
 
         th, td {
             padding: 10px;
             text-align: left;
-            vertical-align: top;
         }
 
         th {
@@ -117,12 +121,14 @@
         }
     </style>
 </head>
+
 <body>
 
 <h1>📈 AI Stock Signals</h1>
 
 <div class="container">
 
+    <!-- TABLE -->
     <div class="card">
         <h2>All Stocks (Ranked)</h2>
 
@@ -141,9 +147,6 @@
                     <th>RSI</th>
                     <th>Reason</th>
                     <th>Price</th>
-                    <th>Day</th>
-                    <th>Week</th>
-                    <th>Month</th>
                 </tr>
 
                 {% for stock in scored %}
@@ -156,7 +159,7 @@
                     <td class="{{ stock.signal|lower }}">{{ stock.signal }}</td>
                     <td>{{ stock.score }}</td>
                     <td>
-                        <span class="{% if stock.confidence_label == 'High' %}high{% elif stock.confidence_label == 'Medium' %}medium{% else %}low{% endif %}">
+                        <span class="{{ stock.confidence_label|lower }}">
                             {{ stock.confidence_label }}
                         </span>
                         ({{ stock.confidence }})
@@ -165,63 +168,60 @@
                     <td>
                         {{ stock.rsi }}
                         {% if stock.rsi_flag == "Oversold" %}
-                            <span class="oversold">🔥 Oversold</span>
+                            🔥
                         {% elif stock.rsi_flag == "Overbought" %}
-                            <span class="overbought">⚠️ Overbought</span>
-                        {% else %}
-                            <span class="neutral">Neutral</span>
+                            ⚠️
                         {% endif %}
                     </td>
                     <td>{{ stock.reason }}</td>
                     <td>{{ stock.price_display }}</td>
-                    <td>{{ stock.d_high_display }} / {{ stock.d_low_display }}</td>
-                    <td>{{ stock.w_high_display }} / {{ stock.w_low_display }}</td>
-                    <td>{{ stock.m_high_display }} / {{ stock.m_low_display }}</td>
                 </tr>
                 {% endfor %}
             </table>
         </div>
     </div>
 
+    <!-- BEST TRADE -->
     <div class="card">
         <h2>🔥 Best Trade Right Now</h2>
-        <div class="time">Last updated: {{ now }}</div>
+        <div class="time">Updated: {{ now }}</div>
 
-        <div class="best-title">{{ best.name }} ({{ best.symbol }})</div>
-        <div class="best-sub">{{ best.market }} | {{ best.currency }}</div>
+        <div class="best-title">{{ best.name }}</div>
+        <div class="best-sub">{{ best.symbol }} | {{ best.market }} | {{ best.currency }}</div>
 
         <div class="best-grid">
+
+            <!-- COL 1 -->
             <div class="mini">
                 <p><strong>Signal:</strong> <span class="{{ best.signal|lower }}">{{ best.signal }}</span></p>
                 <p><strong>Score:</strong> {{ best.score }}</p>
                 <p><strong>Confidence:</strong>
-                    <span class="{% if best.confidence_label == 'High' %}high{% elif best.confidence_label == 'Medium' %}medium{% else %}low{% endif %}">
-                        {{ best.confidence_label }}
-                    </span>
+                    <span class="{{ best.confidence_label|lower }}">{{ best.confidence_label }}</span>
                     ({{ best.confidence }})
                 </p>
                 <p><strong>Trend:</strong> {{ best.trend }}</p>
             </div>
 
+            <!-- COL 2 -->
             <div class="mini">
                 <p><strong>Price:</strong> {{ best.price_display }}</p>
                 <p><strong>RSI:</strong> {{ best.rsi }}
                     {% if best.rsi_flag == "Oversold" %}
-                        <span class="oversold">🔥 Oversold</span>
+                        🔥 Oversold
                     {% elif best.rsi_flag == "Overbought" %}
-                        <span class="overbought">⚠️ Overbought</span>
-                    {% else %}
-                        <span class="neutral">Neutral</span>
+                        ⚠️ Overbought
                     {% endif %}
                 </p>
                 <p><strong>Reason:</strong> {{ best.reason }}</p>
             </div>
 
+            <!-- COL 3 -->
             <div class="mini">
                 <p><strong>Day:</strong> {{ best.d_high_display }} / {{ best.d_low_display }}</p>
                 <p><strong>Week:</strong> {{ best.w_high_display }} / {{ best.w_low_display }}</p>
                 <p><strong>Month:</strong> {{ best.m_high_display }} / {{ best.m_low_display }}</p>
             </div>
+
         </div>
     </div>
 
