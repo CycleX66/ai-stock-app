@@ -1,4 +1,5 @@
 from flask import Flask, render_template
+from datetime import datetime
 import yfinance as yf
 import pandas as pd
 import math
@@ -344,7 +345,12 @@ def index():
     else:
         best = results[0]
 
-    return render_template("index.html", scored=results, best=best)
+    return render_template(
+        "index.html",
+        scored=results,
+        best=best,
+        now=datetime.now().strftime("%H:%M:%S")
+    )
 
 if __name__ == "__main__":
     app.run(debug=True)
