@@ -1,534 +1,71 @@
-<a href="/onboarding" style="color:#4CAF50; font-weight:bold;">
-    Set Risk Profile
-</a>
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
+    <title>AI Stock Signals</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="60">
-    <title>AI Stock Signals Terminal</title>
-
     <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            background: #0a0f1a;
-            color: #e5e7eb;
-            font-family: Arial, sans-serif;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
         body {
-            padding: 20px;
+            background: #0b0f1a;
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 30px;
         }
-
-        h1 {
-            margin: 0 0 18px 0;
-            text-align: center;
-            font-size: 34px;
-            font-weight: 800;
-            letter-spacing: 0.5px;
-            background: linear-gradient(90deg, #60a5fa, #22c55e);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        h2, h3 {
-            margin-top: 0;
-        }
-
-        .topbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 18px;
-            flex-wrap: wrap;
-            color: #94a3b8;
-            font-size: 14px;
-        }
-
-        .terminal-badge {
+        .card {
             background: #111827;
             border: 1px solid #334155;
-            border-radius: 999px;
-            padding: 8px 12px;
-        }
-
-        .card {
-            width: 100%;
-            background: linear-gradient(145deg, #1e293b, #0f172a);
-            border-radius: 14px;
+            border-radius: 12px;
             padding: 20px;
             margin-bottom: 20px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.35);
-            border: 1px solid #334155;
         }
-
-        .time {
-            color: #94a3b8;
-            font-size: 14px;
-            margin-bottom: 10px;
-        }
-
-        .best-sub {
-            color: #cbd5e1;
-            margin-bottom: 14px;
-            font-size: 18px;
-        }
-
-        .hero-line {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            align-items: center;
-            margin-bottom: 14px;
-        }
-
-        .hero-price {
-            font-size: 34px;
-            font-weight: 800;
-            color: #f8fafc;
-        }
-
-        .hero-pill {
-            background: #0f172a;
-            border: 1px solid #334155;
-            border-radius: 999px;
-            padding: 8px 12px;
-            font-size: 14px;
-        }
-
-        .best-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-top: 12px;
-        }
-
-        @media (min-width: 950px) {
-            .best-grid {
-                display: grid;
-                grid-template-columns: 1fr 1fr 1fr;
-            }
-        }
-
-        .box {
-            width: 100%;
-            background: rgba(15, 23, 42, 0.88);
-            border: 1px solid #334155;
-            border-radius: 12px;
-            padding: 14px;
-            line-height: 1.6;
-            transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
-        }
-
-        .box:hover {
-            border-color: #3b82f6;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.25);
-        }
-
-        .metric {
-            margin-bottom: 8px;
-        }
-
-        .metric:last-child {
-            margin-bottom: 0;
-        }
-
-        .label {
-            color: #94a3b8;
-            font-weight: bold;
-        }
-
-        .table-tools {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            align-items: center;
-            justify-content: space-between;
-            margin: 12px 0 8px 0;
-        }
-
-        .tool-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .tool-btn, .tool-input {
-            background: #0f172a;
-            color: #e5e7eb;
-            border: 1px solid #334155;
-            border-radius: 10px;
-            padding: 10px 12px;
-            font-size: 14px;
-        }
-
-        .tool-btn {
-            cursor: pointer;
-        }
-
-        .tool-btn:hover {
-            border-color: #3b82f6;
-        }
-
-        .tool-btn.active {
-            background: #1d4ed8;
-            border-color: #60a5fa;
-        }
-
-        .table-wrapper {
-            width: 100%;
-            overflow-x: auto;
-            margin-top: 10px;
-            border-radius: 12px;
-        }
-
+        .buy { color: #22c55e; font-weight: bold; }
         table {
             width: 100%;
-            min-width: 1400px;
             border-collapse: collapse;
         }
-
         th, td {
-            padding: 11px 10px;
+            padding: 10px;
+            border-bottom: 1px solid #334155;
             text-align: left;
-            vertical-align: top;
-            white-space: nowrap;
-        }
-
-        th {
-            background: #334155;
-            position: sticky;
-            top: 0;
-            z-index: 1;
-        }
-
-        tbody tr:nth-child(even) {
-            background: #0f172a;
-        }
-
-        tbody tr:hover {
-            background: #132036;
-        }
-
-        .highlight {
-            background: #1d4ed8 !important;
-        }
-
-        .buy {
-            color: #22c55e;
-            font-weight: bold;
-            animation: pulseGreen 2s infinite;
-        }
-
-        .sell {
-            color: #ef4444;
-            font-weight: bold;
-        }
-
-        .hold {
-            color: #eab308;
-            font-weight: bold;
-        }
-
-        @keyframes pulseGreen {
-            0% { opacity: 1; }
-            50% { opacity: 0.6; }
-            100% { opacity: 1; }
-        }
-
-        .high { color: #22c55e; font-weight: bold; }
-        .medium { color: #facc15; font-weight: bold; }
-        .low { color: #f87171; font-weight: bold; }
-
-        .oversold { color: #22c55e; font-weight: bold; }
-        .overbought { color: #ef4444; font-weight: bold; }
-        .neutral { color: #cbd5e1; }
-        .muted { color: #94a3b8; }
-
-        .trend-up { color: #22c55e; font-weight: bold; }
-        .trend-down { color: #ef4444; font-weight: bold; }
-        .trend-flat { color: #eab308; font-weight: bold; }
-        .trend-rebound { color: #60a5fa; font-weight: bold; }
-        .trend-stretched { color: #f97316; font-weight: bold; }
-
-        .trend-wrap {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .trend-bar-bg {
-            width: 60px;
-            height: 6px;
-            background: #1e293b;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .trend-bar-fill {
-            height: 100%;
-            background: #3b82f6;
-            border-radius: 4px;
-        }
-
-        .footer-note {
-            color: #64748b;
-            font-size: 13px;
-            margin-top: 10px;
         }
     </style>
 </head>
 <body>
 
-    <h1>📈 AI Stock Signals</h1>
-
-    <div class="topbar">
-        <div class="terminal-badge">Terminal Mode</div>
-        <div class="terminal-badge">Last updated: {{ now }}</div>
-        <div class="terminal-badge">Auto refresh in <span id="countdown">60</span>s</div>
-    </div>
-
-    <div class="topbar">
-        <div class="terminal-badge">Market Watch</div>
-        <div class="terminal-badge">Signals Active: {{ scored|length }}</div>
-        <div class="terminal-badge">Top Score: {{ best.score }}</div>
-    </div>
+    <h1>AI Stock Signals</h1>
 
     <div class="card">
-        <h2>🔥 Best Trade Right Now</h2>
-
-        <h3>{{ best.name }} ({{ best.symbol }})</h3>
-        <div class="best-sub">{{ best.market }} | {{ best.currency }}</div>
-
-        <div class="hero-line">
-            <div class="hero-price">{{ best.price_display }}</div>
-            <div class="hero-pill">Signal: <span class="{{ best.signal|lower }}">{{ best.signal }}</span></div>
-            <div class="hero-pill">
-                Trend:
-                {% set best_trend = best.trend|lower %}
-                <span class="{% if best_trend == 'up' %}trend-up{% elif best_trend == 'down' %}trend-down{% elif best_trend == 'flat' %}trend-flat{% elif best_trend == 'rebound' %}trend-rebound{% elif best_trend == 'stretched' %}trend-stretched{% endif %}">
-                    {% if best_trend == 'up' %}↑{% elif best_trend == 'down' %}↓{% elif best_trend == 'flat' %}→{% elif best_trend == 'rebound' %}↗{% elif best_trend == 'stretched' %}↘{% endif %}
-                    {{ best.trend }}
-                </span>
-            </div>
-            <div class="hero-pill">Score: {{ best.score }}</div>
-        </div>
-
-        <div class="best-grid">
-            <div class="box">
-                <div class="metric"><span class="label">Signal:</span> <span class="{{ best.signal|lower }}">{{ best.signal }}</span></div>
-                <div class="metric"><span class="label">Score:</span> {{ best.score }}</div>
-                <div class="metric">
-                    <span class="label">Confidence:</span>
-                    <span class="{% if best.confidence_label == 'High' %}high{% elif best.confidence_label == 'Medium' %}medium{% else %}low{% endif %}">
-                        {{ best.confidence_label }}
-                    </span>
-                    ({{ best.confidence }})
-                </div>
-                <div class="metric">
-                    <span class="label">Trend:</span>
-                    {% set best_trend = best.trend|lower %}
-                    <span class="{% if best_trend == 'up' %}trend-up{% elif best_trend == 'down' %}trend-down{% elif best_trend == 'flat' %}trend-flat{% elif best_trend == 'rebound' %}trend-rebound{% elif best_trend == 'stretched' %}trend-stretched{% endif %}">
-                        {% if best_trend == 'up' %}↑{% elif best_trend == 'down' %}↓{% elif best_trend == 'flat' %}→{% elif best_trend == 'rebound' %}↗{% elif best_trend == 'stretched' %}↘{% endif %}
-                        {{ best.trend }}
-                    </span>
-                </div>
-            </div>
-
-            <div class="box">
-                <div class="metric"><span class="label">Price:</span> {{ best.price_display }}</div>
-                <div class="metric">
-                    <span class="label">RSI:</span> {{ best.rsi }}
-                    {% if best.rsi_flag == "Oversold" %}
-                        <span class="oversold">🔥 Oversold</span>
-                    {% elif best.rsi_flag == "Overbought" %}
-                        <span class="overbought">⚠️ Overbought</span>
-                    {% else %}
-                        <span class="neutral">Neutral</span>
-                    {% endif %}
-                </div>
-                <div class="metric"><span class="label">Reason:</span> {{ best.reason }}</div>
-            </div>
-
-            <div class="box">
-                <div class="metric"><span class="label">Day:</span> {{ best.d_high_display }} / {{ best.d_low_display }}</div>
-                <div class="metric"><span class="label">Week:</span> {{ best.w_high_display }} / {{ best.w_low_display }}</div>
-                <div class="metric"><span class="label">Month:</span> {{ best.m_high_display }} / {{ best.m_low_display }}</div>
-            </div>
-        </div>
+        <a href="/onboarding" style="color:#60a5fa;">Set Risk Profile</a>
+        <p>Risk: {{ risk }}</p>
     </div>
+
+    {% if best %}
+    <div class="card">
+        <h2>Best Trade Right Now</h2>
+        <p><strong>{{ best.name }}</strong> ({{ best.ticker }})</p>
+        <p>Signal: <span class="buy">{{ best.signal }}</span></p>
+        <p>Score: {{ best.score }}</p>
+    </div>
+    {% endif %}
 
     <div class="card">
-        <h2>All Stocks (Ranked)</h2>
-
-        <div class="table-tools">
-            <div class="tool-group">
-                <button class="tool-btn active filter-btn" onclick="filterRows('ALL', this)">All</button>
-                <button class="tool-btn filter-btn" onclick="filterRows('BUY', this)">BUY</button>
-                <button class="tool-btn filter-btn" onclick="filterRows('HOLD', this)">HOLD</button>
-                <button class="tool-btn filter-btn" onclick="filterRows('SELL', this)">SELL</button>
-            </div>
-
-            <div class="tool-group">
-                <button class="tool-btn" onclick="sortTable(6, true)">Sort Score ↓</button>
-                <button class="tool-btn" onclick="sortTable(0, false)">Sort Rank ↑</button>
-                <input class="tool-input" id="searchBox" type="text" placeholder="Search company or ticker" onkeyup="searchRows()">
-            </div>
-        </div>
-
-        <div class="table-wrapper">
-            <table id="stocksTable">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Company</th>
-                        <th>Ticker</th>
-                        <th>Exchange</th>
-                        <th>Currency</th>
-                        <th>Signal</th>
-                        <th>Score</th>
-                        <th>Confidence</th>
-                        <th>Trend</th>
-                        <th>RSI</th>
-                        <th>Reason</th>
-                        <th>Price</th>
-                        <th>Day</th>
-                        <th>Week</th>
-                        <th>Month</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for stock in scored %}
-                    {% set trend_class = 'trend-flat' %}
-                    {% set trend_icon = '→' %}
-                    {% if stock.trend|lower == 'up' %}
-                        {% set trend_class = 'trend-up' %}
-                        {% set trend_icon = '↑' %}
-                    {% elif stock.trend|lower == 'down' %}
-                        {% set trend_class = 'trend-down' %}
-                        {% set trend_icon = '↓' %}
-                    {% elif stock.trend|lower == 'rebound' %}
-                        {% set trend_class = 'trend-rebound' %}
-                        {% set trend_icon = '↗' %}
-                    {% elif stock.trend|lower == 'stretched' %}
-                        {% set trend_class = 'trend-stretched' %}
-                        {% set trend_icon = '↘' %}
-                    {% endif %}
-
-                    <tr class="stock-row {% if loop.index == 1 %}highlight{% endif %}" data-signal="{{ stock.signal }}" data-company="{{ stock.name|lower }}" data-ticker="{{ stock.symbol|lower }}">
-                        <td>{{ loop.index }}</td>
-                        <td>{{ stock.name }}</td>
-                        <td>{{ stock.symbol }}</td>
-                        <td>{{ stock.market }}</td>
-                        <td>{{ stock.currency }}</td>
-                        <td class="{{ stock.signal|lower }}">{{ stock.signal }}</td>
-                        <td>{{ stock.score }}</td>
-                        <td>
-                            <span class="{% if stock.confidence_label == 'High' %}high{% elif stock.confidence_label == 'Medium' %}medium{% else %}low{% endif %}">
-                                {{ stock.confidence_label }}
-                            </span>
-                            ({{ stock.confidence }})
-                        </td>
-                        <td>
-                            <div class="trend-wrap">
-                                <span class="{{ trend_class }}">{{ trend_icon }} {{ stock.trend }}</span>
-                                <div class="trend-bar-bg">
-                                    <div class="trend-bar-fill" style="width: {{ stock.score }}%;"></div>
-                                </div>
-                            </div>
-                        </td>
-                        <td>
-                            {{ stock.rsi }}
-                            {% if stock.rsi_flag == "Oversold" %}
-                                <span class="oversold">🔥</span>
-                            {% elif stock.rsi_flag == "Overbought" %}
-                                <span class="overbought">⚠️</span>
-                            {% else %}
-                                <span class="muted">•</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ stock.reason }}</td>
-                        <td>{{ stock.price_display }}</td>
-                        <td>{{ stock.d_high_display }} / {{ stock.d_low_display }}</td>
-                        <td>{{ stock.w_high_display }} / {{ stock.w_low_display }}</td>
-                        <td>{{ stock.m_high_display }} / {{ stock.m_low_display }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <div class="footer-note">
-            Terminal view: live refresh every 60 seconds, client-side filtering, search, sorting, and strength bars enabled.
-        </div>
+        <h2>All Stocks</h2>
+        <table>
+            <tr>
+                <th>Company</th>
+                <th>Ticker</th>
+                <th>Signal</th>
+                <th>Score</th>
+            </tr>
+            {% for stock in scored %}
+            <tr>
+                <td>{{ stock.name }}</td>
+                <td>{{ stock.ticker }}</td>
+                <td>{{ stock.signal }}</td>
+                <td>{{ stock.score }}</td>
+            </tr>
+            {% endfor %}
+        </table>
     </div>
-
-    <script>
-        let seconds = 60;
-        const countdownEl = document.getElementById('countdown');
-
-        setInterval(() => {
-            seconds--;
-            if (seconds < 0) seconds = 60;
-            countdownEl.textContent = seconds;
-        }, 1000);
-
-        function filterRows(signal, button) {
-            const rows = document.querySelectorAll('.stock-row');
-            const q = document.getElementById('searchBox').value.toLowerCase();
-
-            rows.forEach(row => {
-                const rowSignal = row.getAttribute('data-signal');
-                const company = row.getAttribute('data-company');
-                const ticker = row.getAttribute('data-ticker');
-
-                const signalMatch = signal === 'ALL' || rowSignal === signal;
-                const textMatch = company.includes(q) || ticker.includes(q);
-
-                row.style.display = signalMatch && textMatch ? '' : 'none';
-            });
-
-            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-            if (button) button.classList.add('active');
-        }
-
-        function searchRows() {
-            const activeBtn = document.querySelector('.filter-btn.active');
-            const activeSignal = activeBtn ? activeBtn.textContent.trim() : 'ALL';
-            filterRows(activeSignal, activeBtn);
-        }
-
-        function sortTable(colIndex, desc) {
-            const table = document.getElementById('stocksTable');
-            const tbody = table.tBodies[0];
-            const rows = Array.from(tbody.querySelectorAll('tr'));
-
-            rows.sort((a, b) => {
-                const aText = a.cells[colIndex].innerText.trim();
-                const bText = b.cells[colIndex].innerText.trim();
-
-                const aNum = parseFloat(aText.replace(/[^\d.-]/g, ''));
-                const bNum = parseFloat(bText.replace(/[^\d.-]/g, ''));
-
-                if (!isNaN(aNum) && !isNaN(bNum)) {
-                    return desc ? bNum - aNum : aNum - bNum;
-                }
-
-                return desc ? bText.localeCompare(aText) : aText.localeCompare(bText);
-            });
-
-            rows.forEach(row => tbody.appendChild(row));
-        }
-    </script>
 
 </body>
 </html>
