@@ -22,7 +22,6 @@
             background: #0f172a;
             color: #e5e7eb;
             padding: 20px;
-            display: block;
         }
 
         h1 {
@@ -32,11 +31,6 @@
 
         h2, h3 {
             margin-top: 0;
-        }
-
-        .page {
-            width: 100%;
-            display: block;
         }
 
         .card {
@@ -128,122 +122,115 @@
         .oversold { color: #22c55e; font-weight: bold; }
         .overbought { color: #ef4444; font-weight: bold; }
         .neutral { color: #cbd5e1; }
-
-        .muted {
-            color: #94a3b8;
-        }
+        .muted { color: #94a3b8; }
     </style>
 </head>
 <body>
 
-    <div class="page">
+    <h1>📈 AI Stock Signals</h1>
 
-        <h1>📈 AI Stock Signals</h1>
+    <div class="card">
+        <h2>🔥 Best Trade Right Now</h2>
+        <div class="time">Last updated: {{ now }}</div>
 
-        <div class="card">
-            <h2>🔥 Best Trade Right Now</h2>
-            <div class="time">Last updated: {{ now }}</div>
+        <h3>{{ best.name }} ({{ best.symbol }})</h3>
+        <div class="best-sub">{{ best.market }} | {{ best.currency }}</div>
 
-            <h3>{{ best.name }} ({{ best.symbol }})</h3>
-            <div class="best-sub">{{ best.market }} | {{ best.currency }}</div>
+        <div class="best-grid">
+            <div class="box">
+                <div><strong>Signal:</strong> <span class="{{ best.signal|lower }}">{{ best.signal }}</span></div>
+                <div><strong>Score:</strong> {{ best.score }}</div>
+                <div>
+                    <strong>Confidence:</strong>
+                    <span class="{% if best.confidence_label == 'High' %}high{% elif best.confidence_label == 'Medium' %}medium{% else %}low{% endif %}">
+                        {{ best.confidence_label }}
+                    </span>
+                    ({{ best.confidence }})
+                </div>
+                <div><strong>Trend:</strong> {{ best.trend }}</div>
+            </div>
 
-            <div class="best-grid">
-                <div class="box">
-                    <div><strong>Signal:</strong> <span class="{{ best.signal|lower }}">{{ best.signal }}</span></div>
-                    <div><strong>Score:</strong> {{ best.score }}</div>
-                    <div>
-                        <strong>Confidence:</strong>
-                        <span class="{% if best.confidence_label == 'High' %}high{% elif best.confidence_label == 'Medium' %}medium{% else %}low{% endif %}">
-                            {{ best.confidence_label }}
+            <div class="box">
+                <div><strong>Price:</strong> {{ best.price_display }}</div>
+                <div>
+                    <strong>RSI:</strong> {{ best.rsi }}
+                    {% if best.rsi_flag == "Oversold" %}
+                        <span class="oversold">🔥 Oversold</span>
+                    {% elif best.rsi_flag == "Overbought" %}
+                        <span class="overbought">⚠️ Overbought</span>
+                    {% else %}
+                        <span class="neutral">Neutral</span>
+                    {% endif %}
+                </div>
+                <div><strong>Reason:</strong> {{ best.reason }}</div>
+            </div>
+
+            <div class="box">
+                <div><strong>Day:</strong> {{ best.d_high_display }} / {{ best.d_low_display }}</div>
+                <div><strong>Week:</strong> {{ best.w_high_display }} / {{ best.w_low_display }}</div>
+                <div><strong>Month:</strong> {{ best.m_high_display }} / {{ best.m_low_display }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>All Stocks (Ranked)</h2>
+
+        <div class="table-wrapper">
+            <table>
+                <tr>
+                    <th>#</th>
+                    <th>Company</th>
+                    <th>Ticker</th>
+                    <th>Exchange</th>
+                    <th>Currency</th>
+                    <th>Signal</th>
+                    <th>Score</th>
+                    <th>Confidence</th>
+                    <th>Trend</th>
+                    <th>RSI</th>
+                    <th>Reason</th>
+                    <th>Price</th>
+                    <th>Day</th>
+                    <th>Week</th>
+                    <th>Month</th>
+                </tr>
+
+                {% for stock in scored %}
+                <tr {% if loop.index == 1 %}class="highlight"{% endif %}>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ stock.name }}</td>
+                    <td>{{ stock.symbol }}</td>
+                    <td>{{ stock.market }}</td>
+                    <td>{{ stock.currency }}</td>
+                    <td class="{{ stock.signal|lower }}">{{ stock.signal }}</td>
+                    <td>{{ stock.score }}</td>
+                    <td>
+                        <span class="{% if stock.confidence_label == 'High' %}high{% elif stock.confidence_label == 'Medium' %}medium{% else %}low{% endif %}">
+                            {{ stock.confidence_label }}
                         </span>
-                        ({{ best.confidence }})
-                    </div>
-                    <div><strong>Trend:</strong> {{ best.trend }}</div>
-                </div>
-
-                <div class="box">
-                    <div><strong>Price:</strong> {{ best.price_display }}</div>
-                    <div>
-                        <strong>RSI:</strong> {{ best.rsi }}
-                        {% if best.rsi_flag == "Oversold" %}
-                            <span class="oversold">🔥 Oversold</span>
-                        {% elif best.rsi_flag == "Overbought" %}
-                            <span class="overbought">⚠️ Overbought</span>
+                        ({{ stock.confidence }})
+                    </td>
+                    <td>{{ stock.trend }}</td>
+                    <td>
+                        {{ stock.rsi }}
+                        {% if stock.rsi_flag == "Oversold" %}
+                            <span class="oversold">🔥</span>
+                        {% elif stock.rsi_flag == "Overbought" %}
+                            <span class="overbought">⚠️</span>
                         {% else %}
-                            <span class="neutral">Neutral</span>
+                            <span class="muted">•</span>
                         {% endif %}
-                    </div>
-                    <div><strong>Reason:</strong> {{ best.reason }}</div>
-                </div>
-
-                <div class="box">
-                    <div><strong>Day:</strong> {{ best.d_high_display }} / {{ best.d_low_display }}</div>
-                    <div><strong>Week:</strong> {{ best.w_high_display }} / {{ best.w_low_display }}</div>
-                    <div><strong>Month:</strong> {{ best.m_high_display }} / {{ best.m_low_display }}</div>
-                </div>
-            </div>
+                    </td>
+                    <td>{{ stock.reason }}</td>
+                    <td>{{ stock.price_display }}</td>
+                    <td>{{ stock.d_high_display }} / {{ stock.d_low_display }}</td>
+                    <td>{{ stock.w_high_display }} / {{ stock.w_low_display }}</td>
+                    <td>{{ stock.m_high_display }} / {{ stock.m_low_display }}</td>
+                </tr>
+                {% endfor %}
+            </table>
         </div>
-
-        <div class="card">
-            <h2>All Stocks (Ranked)</h2>
-
-            <div class="table-wrapper">
-                <table>
-                    <tr>
-                        <th>#</th>
-                        <th>Company</th>
-                        <th>Ticker</th>
-                        <th>Exchange</th>
-                        <th>Currency</th>
-                        <th>Signal</th>
-                        <th>Score</th>
-                        <th>Confidence</th>
-                        <th>Trend</th>
-                        <th>RSI</th>
-                        <th>Reason</th>
-                        <th>Price</th>
-                        <th>Day</th>
-                        <th>Week</th>
-                        <th>Month</th>
-                    </tr>
-
-                    {% for stock in scored %}
-                    <tr {% if loop.index == 1 %}class="highlight"{% endif %}>
-                        <td>{{ loop.index }}</td>
-                        <td>{{ stock.name }}</td>
-                        <td>{{ stock.symbol }}</td>
-                        <td>{{ stock.market }}</td>
-                        <td>{{ stock.currency }}</td>
-                        <td class="{{ stock.signal|lower }}">{{ stock.signal }}</td>
-                        <td>{{ stock.score }}</td>
-                        <td>
-                            <span class="{% if stock.confidence_label == 'High' %}high{% elif stock.confidence_label == 'Medium' %}medium{% else %}low{% endif %}">
-                                {{ stock.confidence_label }}
-                            </span>
-                            ({{ stock.confidence }})
-                        </td>
-                        <td>{{ stock.trend }}</td>
-                        <td>
-                            {{ stock.rsi }}
-                            {% if stock.rsi_flag == "Oversold" %}
-                                <span class="oversold">🔥</span>
-                            {% elif stock.rsi_flag == "Overbought" %}
-                                <span class="overbought">⚠️</span>
-                            {% else %}
-                                <span class="muted">•</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ stock.reason }}</td>
-                        <td>{{ stock.price_display }}</td>
-                        <td>{{ stock.d_high_display }} / {{ stock.d_low_display }}</td>
-                        <td>{{ stock.w_high_display }} / {{ stock.w_low_display }}</td>
-                        <td>{{ stock.m_high_display }} / {{ stock.m_low_display }}</td>
-                    </tr>
-                    {% endfor %}
-                </table>
-            </div>
-        </div>
-
     </div>
 
 </body>
