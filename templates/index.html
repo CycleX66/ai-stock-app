@@ -4,14 +4,10 @@
     <title>AI Stock Dashboard</title>
     <style>
         body {
-            font-family: Arial;
+            font-family: Arial, sans-serif;
             background: #0b0f1a;
             color: white;
             padding: 20px;
-        }
-
-        h2 {
-            margin-bottom: 10px;
         }
 
         .card {
@@ -19,6 +15,42 @@
             padding: 20px;
             border-radius: 12px;
             margin-bottom: 20px;
+        }
+
+        h2 {
+            margin: 0 0 12px 0;
+        }
+
+        .big {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+
+        .sub {
+            color: #9ca3af;
+            margin-bottom: 10px;
+        }
+
+        .buy { color: #22c55e; font-weight: bold; }
+        .sell { color: #ef4444; font-weight: bold; }
+        .hold { color: #facc15; font-weight: bold; }
+
+        .neutral { color: #cbd5e1; }
+        .oversold { color: #22c55e; font-weight: bold; }
+        .overbought { color: #ef4444; font-weight: bold; }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .mini {
+            background: #1f2937;
+            padding: 12px;
+            border-radius: 10px;
         }
 
         table {
@@ -36,48 +68,26 @@
         td {
             padding: 10px;
             border-bottom: 1px solid #1f2937;
+            vertical-align: top;
         }
 
         tr:hover {
             background: #1f2937;
         }
 
-        .buy { color: #22c55e; font-weight: bold; }
-        .sell { color: #ef4444; font-weight: bold; }
-        .hold { color: #facc15; font-weight: bold; }
-
-        .big {
-            font-size: 22px;
-            font-weight: bold;
-        }
-
-        .sub {
+        .rank {
             color: #9ca3af;
-            font-size: 14px;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-top: 10px;
+            width: 30px;
         }
     </style>
 </head>
-
 <body>
 
-<!-- 🔥 BEST TRADE -->
 <div class="card">
     <h2>🔥 Best Trade Right Now</h2>
 
-    <div class="big">
-        {{ best.name }} ({{ best.symbol }})
-    </div>
-
-    <div class="sub">
-        {{ best.market }} | {{ best.currency }}
-    </div>
+    <div class="big">{{ best.name }} ({{ best.symbol }})</div>
+    <div class="sub">{{ best.market }} | {{ best.currency }}</div>
 
     <p>
         Signal:
@@ -86,18 +96,28 @@
         </span>
     </p>
 
-    <p>Score: {{ best.score }}</p>
-    <p>Trend: {{ best.trend }}</p>
-    <p>Price: {{ best.price_display }}</p>
+    <p><strong>Score:</strong> {{ best.score }}</p>
+    <p><strong>Trend:</strong> {{ best.trend }}</p>
+    <p><strong>Price:</strong> {{ best.price_display }}</p>
+
+    <p>
+        <strong>RSI:</strong> {{ best.rsi }}
+        {% if best.rsi_flag == "Oversold" %}
+            <span class="oversold">(Oversold 🔥)</span>
+        {% elif best.rsi_flag == "Overbought" %}
+            <span class="overbought">(Overbought ⚠️)</span>
+        {% else %}
+            <span class="neutral">(Neutral)</span>
+        {% endif %}
+    </p>
 
     <div class="grid">
-        <div>Day: {{ best.d_high_display }} / {{ best.d_low_display }}</div>
-        <div>Week: {{ best.w_high_display }} / {{ best.w_low_display }}</div>
-        <div>Month: {{ best.m_high_display }} / {{ best.m_low_display }}</div>
+        <div class="mini">Day: {{ best.d_high_display }} / {{ best.d_low_display }}</div>
+        <div class="mini">Week: {{ best.w_high_display }} / {{ best.w_low_display }}</div>
+        <div class="mini">Month: {{ best.m_high_display }} / {{ best.m_low_display }}</div>
     </div>
 </div>
 
-<!-- 🔥 ALL STOCKS -->
 <div class="card">
     <h2>All Stocks (Ranked)</h2>
 
@@ -111,6 +131,7 @@
             <th>Signal</th>
             <th>Score</th>
             <th>Trend</th>
+            <th>RSI</th>
             <th>Price</th>
             <th>Day</th>
             <th>Week</th>
@@ -119,7 +140,7 @@
 
         {% for s in scored %}
         <tr>
-            <td>{{ loop.index }}</td>
+            <td class="rank">{{ loop.index }}</td>
             <td>{{ s.name }}</td>
             <td>{{ s.symbol }}</td>
             <td>{{ s.market }}</td>
@@ -131,14 +152,22 @@
 
             <td>{{ s.score }}</td>
             <td>{{ s.trend }}</td>
-            <td>{{ s.price_display }}</td>
 
+            <td>
+                {{ s.rsi }}
+                {% if s.rsi_flag == "Oversold" %}
+                    <span class="oversold">🔥</span>
+                {% elif s.rsi_flag == "Overbought" %}
+                    <span class="overbought">⚠️</span>
+                {% endif %}
+            </td>
+
+            <td>{{ s.price_display }}</td>
             <td>{{ s.d_high_display }} / {{ s.d_low_display }}</td>
             <td>{{ s.w_high_display }} / {{ s.w_low_display }}</td>
             <td>{{ s.m_high_display }} / {{ s.m_low_display }}</td>
         </tr>
         {% endfor %}
-
     </table>
 </div>
 
