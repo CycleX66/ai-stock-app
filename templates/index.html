@@ -18,7 +18,7 @@
             margin-bottom: 20px;
         }
 
-        /* MAIN GRID (FIXED) */
+        /* GRID LAYOUT */
         .container {
             display: grid;
             grid-template-columns: 1fr;
@@ -35,15 +35,23 @@
             background: #121826;
             padding: 20px;
             border-radius: 10px;
+            overflow: hidden;
         }
 
         .buy { color: #00ff88; font-weight: bold; }
         .sell { color: #ff4d4d; font-weight: bold; }
         .hold { color: #ffaa00; font-weight: bold; }
 
+        /* TABLE FIX */
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
         table {
             width: 100%;
+            min-width: 700px;
             border-collapse: collapse;
+            white-space: nowrap;
         }
 
         th, td {
@@ -63,7 +71,7 @@
             background: #1e3a8a !important;
         }
 
-        /* BEST TRADE GRID (FIXED) */
+        /* BEST TRADE GRID */
         .best-grid {
             display: grid;
             grid-template-columns: 1fr;
@@ -77,6 +85,12 @@
             }
         }
 
+        /* STOP TEXT BREAKING */
+        p {
+            margin: 6px 0;
+            white-space: nowrap;
+        }
+
     </style>
 </head>
 
@@ -86,36 +100,38 @@
 
 <div class="container">
 
-    <!-- LEFT: TABLE -->
+    <!-- TABLE -->
     <div class="card">
         <h2>All Stocks (Ranked)</h2>
 
-        <table>
-            <tr>
-                <th>#</th>
-                <th>Company</th>
-                <th>Ticker</th>
-                <th>Exchange</th>
-                <th>Currency</th>
-                <th>Signal</th>
-                <th>Score</th>
-            </tr>
+        <div class="table-wrapper">
+            <table>
+                <tr>
+                    <th>#</th>
+                    <th>Company</th>
+                    <th>Ticker</th>
+                    <th>Exchange</th>
+                    <th>Currency</th>
+                    <th>Signal</th>
+                    <th>Score</th>
+                </tr>
 
-            {% for stock in stocks %}
-            <tr {% if loop.index == 1 %}class="highlight"{% endif %}>
-                <td>{{ loop.index }}</td>
-                <td>{{ stock.name }}</td>
-                <td>{{ stock.ticker }}</td>
-                <td>{{ stock.exchange }}</td>
-                <td>{{ stock.currency }}</td>
-                <td class="{{ stock.signal|lower }}">{{ stock.signal }}</td>
-                <td>{{ stock.score }}</td>
-            </tr>
-            {% endfor %}
-        </table>
+                {% for stock in stocks %}
+                <tr {% if loop.index == 1 %}class="highlight"{% endif %}>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ stock.name }}</td>
+                    <td>{{ stock.ticker }}</td>
+                    <td>{{ stock.exchange }}</td>
+                    <td>{{ stock.currency }}</td>
+                    <td class="{{ stock.signal|lower }}">{{ stock.signal }}</td>
+                    <td>{{ stock.score }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
     </div>
 
-    <!-- RIGHT: BEST TRADE -->
+    <!-- BEST TRADE -->
     <div class="card">
         <h2>🔥 Best Trade Right Now</h2>
 
@@ -124,7 +140,6 @@
 
         <div class="best-grid">
 
-            <!-- COLUMN 1 -->
             <div>
                 <p><b>Signal:</b> <span class="{{ best.signal|lower }}">{{ best.signal }}</span></p>
                 <p><b>Score:</b> {{ best.score }}</p>
@@ -132,14 +147,12 @@
                 <p><b>Trend:</b> {{ best.trend }}</p>
             </div>
 
-            <!-- COLUMN 2 -->
             <div>
                 <p><b>Price:</b> {{ best.price }}</p>
                 <p><b>RSI:</b> {{ best.rsi }}</p>
                 <p><b>Reason:</b> {{ best.reason }}</p>
             </div>
 
-            <!-- COLUMN 3 -->
             <div>
                 <p><b>Day:</b> {{ best.day }}</p>
                 <p><b>Week:</b> {{ best.week }}</p>
