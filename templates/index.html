@@ -59,17 +59,30 @@
             background: #1e3a8a !important;
         }
 
-        @media (min-width: 900px) {
+        /* BEST TRADE GRID */
+        .best-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        /* TABLET + DESKTOP */
+        @media (min-width: 700px) {
             .container {
                 flex-direction: row;
             }
 
             .left {
-                width: 60%;
+                width: 65%;
             }
 
             .right {
-                width: 40%;
+                width: 35%;
+            }
+
+            .best-grid {
+                grid-template-columns: 1fr 1fr 1fr;
             }
         }
     </style>
@@ -115,24 +128,33 @@
         <h2>🔥 Best Trade Right Now</h2>
 
         <h3>{{ best.name }} ({{ best.ticker }})</h3>
+        <p><b>{{ best.exchange }} | {{ best.currency }}</b></p>
 
-        <p><b>Exchange:</b> {{ best.exchange }} | {{ best.currency }}</p>
-        <p><b>Signal:</b> <span class="{{ best.signal|lower }}">{{ best.signal }}</span></p>
-        <p><b>Score:</b> {{ best.score }}</p>
-        <p><b>Trend:</b> {{ best.trend }}</p>
-        <p><b>Confidence:</b> {{ best.confidence }}</p>
+        <div class="best-grid">
 
-        <hr>
+            <!-- COLUMN 1 -->
+            <div>
+                <p><b>Signal:</b> <span class="{{ best.signal|lower }}">{{ best.signal }}</span></p>
+                <p><b>Score:</b> {{ best.score }}</p>
+                <p><b>Confidence:</b> {{ best.confidence }}</p>
+                <p><b>Trend:</b> {{ best.trend }}</p>
+            </div>
 
-        <p><b>Price:</b> {{ best.price }}</p>
-        <p><b>RSI:</b> {{ best.rsi }}</p>
-        <p><b>Reason:</b> {{ best.reason }}</p>
+            <!-- COLUMN 2 -->
+            <div>
+                <p><b>Price:</b> {{ best.price }}</p>
+                <p><b>RSI:</b> {{ best.rsi }}</p>
+                <p><b>Reason:</b> {{ best.reason }}</p>
+            </div>
 
-        <hr>
+            <!-- COLUMN 3 -->
+            <div>
+                <p><b>Day:</b> {{ best.day }}</p>
+                <p><b>Week:</b> {{ best.week }}</p>
+                <p><b>Month:</b> {{ best.month }}</p>
+            </div>
 
-        <p><b>Day:</b> {{ best.day }}</p>
-        <p><b>Week:</b> {{ best.week }}</p>
-        <p><b>Month:</b> {{ best.month }}</p>
+        </div>
     </div>
 
 </div>
