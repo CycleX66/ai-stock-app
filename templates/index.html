@@ -40,6 +40,10 @@
         .oversold { color: #22c55e; font-weight: bold; }
         .overbought { color: #ef4444; font-weight: bold; }
 
+        .high { color: #22c55e; font-weight: bold; }
+        .medium { color: #facc15; font-weight: bold; }
+        .low { color: #ef4444; font-weight: bold; }
+
         .grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -90,14 +94,22 @@
     <div class="sub">{{ best.market }} | {{ best.currency }}</div>
 
     <p>
-        Signal:
+        <strong>Signal:</strong>
         <span class="{% if best.signal=='BUY' %}buy{% elif best.signal=='SELL' %}sell{% else %}hold{% endif %}">
             {{ best.signal }}
         </span>
     </p>
 
     <p><strong>Score:</strong> {{ best.score }}</p>
+    <p>
+        <strong>Confidence:</strong>
+        <span class="{% if best.confidence_label=='High' %}high{% elif best.confidence_label=='Medium' %}medium{% else %}low{% endif %}">
+            {{ best.confidence_label }}
+        </span>
+        ({{ best.confidence }})
+    </p>
     <p><strong>Trend:</strong> {{ best.trend }}</p>
+    <p><strong>Reason:</strong> {{ best.reason }}</p>
     <p><strong>Price:</strong> {{ best.price_display }}</p>
 
     <p>
@@ -130,8 +142,10 @@
             <th>Currency</th>
             <th>Signal</th>
             <th>Score</th>
+            <th>Confidence</th>
             <th>Trend</th>
             <th>RSI</th>
+            <th>Reason</th>
             <th>Price</th>
             <th>Day</th>
             <th>Week</th>
@@ -151,6 +165,14 @@
             </td>
 
             <td>{{ s.score }}</td>
+
+            <td>
+                <span class="{% if s.confidence_label=='High' %}high{% elif s.confidence_label=='Medium' %}medium{% else %}low{% endif %}">
+                    {{ s.confidence_label }}
+                </span>
+                ({{ s.confidence }})
+            </td>
+
             <td>{{ s.trend }}</td>
 
             <td>
@@ -162,6 +184,7 @@
                 {% endif %}
             </td>
 
+            <td>{{ s.reason }}</td>
             <td>{{ s.price_display }}</td>
             <td>{{ s.d_high_display }} / {{ s.d_low_display }}</td>
             <td>{{ s.w_high_display }} / {{ s.w_low_display }}</td>
