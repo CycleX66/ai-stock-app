@@ -2,168 +2,631 @@
 <html>
 <head>
     <title>CycleX AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body {
-            background: #0b0f1a;
-            color: white;
-            font-family: Arial;
-            padding: 20px;
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            background: #0a0f1a;
+            color: #e5e7eb;
+            font-family: Arial, sans-serif;
         }
-        h1 { color: #60a5fa; }
+        * { box-sizing: border-box; }
+        body { padding: 18px; }
+        h1 {
+            margin: 0 0 16px 0;
+            text-align: center;
+            font-size: 34px;
+            font-weight: 800;
+            background: linear-gradient(90deg, #60a5fa, #22c55e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        h2, h3 { margin-top: 0; }
+
+        .nav {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+        .nav a {
+            text-decoration: none;
+            color: white;
+            background: #111827;
+            border: 1px solid #334155;
+            padding: 10px 14px;
+            border-radius: 10px;
+        }
+        .nav a.active {
+            background: #1d4ed8;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+            color: #94a3b8;
+            font-size: 14px;
+        }
+        .badge {
+            background: #111827;
+            border: 1px solid #334155;
+            border-radius: 999px;
+            padding: 8px 12px;
+        }
 
         .card {
-            background: #111827;
-            padding: 20px;
+            width: 100%;
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border-radius: 14px;
+            padding: 18px;
+            margin-bottom: 18px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+            border: 1px solid #334155;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+        @media (min-width: 960px) {
+            .grid-2 { grid-template-columns: 1fr 1fr; }
+            .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+            .grid-4 { grid-template-columns: repeat(4, 1fr); }
+        }
+
+        .box {
+            background: rgba(15, 23, 42, 0.88);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 14px;
+            line-height: 1.6;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .tool-select, .tool-btn, .tool-input {
+            background: #0f172a;
+            color: #e5e7eb;
+            border: 1px solid #334155;
             border-radius: 10px;
-            margin-bottom: 20px;
+            padding: 10px 12px;
+            font-size: 14px;
+        }
+        .tool-btn { cursor: pointer; }
+        .tool-btn.remove { border-color: #7f1d1d; }
+
+        .hero-price {
+            font-size: 34px;
+            font-weight: 800;
+            color: #f8fafc;
+        }
+        .hero-line {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+        .pill {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+        .sub {
+            color: #cbd5e1;
+            margin-bottom: 14px;
+            font-size: 17px;
         }
 
-        button {
-            padding: 6px 10px;
-            background: #3b82f6;
-            border: none;
-            color: white;
-            border-radius: 6px;
-            cursor: pointer;
+        .buy { color: #22c55e; font-weight: bold; }
+        .hold { color: #facc15; font-weight: bold; }
+        .sell { color: #ef4444; font-weight: bold; }
+
+        .risk-low { color: #22c55e; font-weight: bold; }
+        .risk-medium { color: #facc15; font-weight: bold; }
+        .risk-high { color: #ef4444; font-weight: bold; }
+
+        .warning {
+            background: #111827;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 10px;
+            color: #cbd5e1;
         }
 
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 10px;
+            border-radius: 12px;
+        }
         table {
             width: 100%;
+            min-width: 1650px;
             border-collapse: collapse;
         }
+        th, td {
+            padding: 11px 10px;
+            text-align: left;
+            vertical-align: top;
+            white-space: nowrap;
+        }
+        th { background: #334155; }
+        tbody tr:nth-child(even) { background: #0f172a; }
+        tbody tr:hover { background: #132036; }
+        .highlight { background: #1d4ed8 !important; }
 
-        td, th {
-            padding: 8px;
-            border-bottom: 1px solid #333;
+        .portfolio-card {
+            background: rgba(15, 23, 42, 0.92);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 14px;
+        }
+        .portfolio-card.active {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 1px #3b82f6 inset;
+        }
+
+        .chart-wrap {
+            background: rgba(15, 23, 42, 0.88);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 12px;
+            margin-top: 12px;
+        }
+
+        .small-note {
+            color: #94a3b8;
+            font-size: 13px;
         }
     </style>
 </head>
-
 <body>
 
-<h1>CycleX AI</h1>
+    <h1>CycleX AI</h1>
 
-<!-- PORTFOLIO HEADER -->
-<div class="card">
-    <h2>Active Portfolio: {{ active_portfolio.name }}</h2>
+    <div class="nav">
+        <a href="/?view=dashboard" class="{% if view == 'dashboard' %}active{% endif %}">Dashboard</a>
+        <a href="/?view=opportunities" class="{% if view == 'opportunities' %}active{% endif %}">Opportunities</a>
+    </div>
 
-    <form method="post" action="/portfolio/select">
-        <select name="portfolio_id">
-            {% for p in portfolios %}
-                <option value="{{ p.id }}" {% if p.id == active_portfolio.id %}selected{% endif %}>
-                    {{ p.name }}
-                </option>
-            {% endfor %}
-        </select>
-        <button>Select</button>
-    </form>
+    <div class="topbar">
+        <div class="badge">AI Risk-Adaptive Market Intelligence Platform</div>
+        <div class="badge">Active Portfolio: {{ active_portfolio.name }}</div>
+        <div class="badge">Last updated: {{ now }}</div>
+    </div>
 
-    <br>
-
-    <form method="post" action="/portfolio/create">
-        <input name="name" placeholder="New Portfolio Name">
-        <select name="risk">
-            {% for r in risk_options %}
-                <option>{{ r }}</option>
-            {% endfor %}
-        </select>
-        <button>Create</button>
-    </form>
-</div>
-
-<!-- BEST STOCK -->
-{% if best %}
-<div class="card">
-    <h2>Top Opportunity</h2>
-    <p><b>{{ best.name }}</b> ({{ best.symbol }})</p>
-    <p>{{ best.signal }} | Score {{ best.score }}</p>
-
-    <form method="post" action="/portfolio/add">
-        <input type="hidden" name="symbol" value="{{ best.symbol }}">
-        <button>Add to Portfolio</button>
-    </form>
-</div>
-{% endif %}
-
-<!-- SCANNER TABLE -->
-<div class="card">
-    <h2>Scanner</h2>
-    <table>
-        <tr>
-            <th>Company</th>
-            <th>Signal</th>
-            <th>Score</th>
-            <th>Add</th>
-        </tr>
-
-        {% for s in scored %}
-        <tr>
-            <td>{{ s.name }}</td>
-            <td>{{ s.signal }}</td>
-            <td>{{ s.score }}</td>
-            <td>
-                <form method="post" action="/portfolio/add">
-                    <input type="hidden" name="symbol" value="{{ s.symbol }}">
-                    <button>Add</button>
-                </form>
-            </td>
-        </tr>
+    <div class="card">
+        {% for item in disclaimers %}
+            <div class="warning">{{ item }}</div>
         {% endfor %}
-    </table>
-</div>
+    </div>
 
-<!-- PORTFOLIO HOLDINGS -->
-<div class="card">
-    <h2>Your Portfolio</h2>
-
-    {% if portfolio_data.summary %}
-        <table>
-            <tr>
-                <th>Stock</th>
-                <th>Return %</th>
-                <th>Remove</th>
-            </tr>
-
-            {% for h in portfolio_data.summary %}
-            <tr>
-                <td>{{ h.name }}</td>
-                <td>{{ h.return_pct }}%</td>
-                <td>
-                    <form method="post" action="/portfolio/remove">
-                        <input type="hidden" name="symbol" value="{{ h.symbol }}">
-                        <button>Remove</button>
-                    </form>
-                </td>
-            </tr>
+    <div class="card">
+        <h2>Portfolios</h2>
+        <div class="grid grid-4">
+            {% for p in portfolio_cards %}
+            <div class="portfolio-card {% if p.id == active_portfolio.id %}active{% endif %}">
+                <div><strong>{{ p.name }}</strong></div>
+                <div>Category: {{ p.risk }}</div>
+                <div>Market: {{ p.market }}</div>
+                <div>Exchange: {{ p.exchange }}</div>
+                <div>Index: {{ p.index }}</div>
+                <div>Currency: {{ p.currency }}</div>
+                <div>Holdings: {{ p.holdings_count }}</div>
+                <div>Total Value: {{ p.total_value }}</div>
+                <div>Return: {{ p.return_pct }}%</div>
+                <form method="post" action="/portfolio/select" style="margin-top:10px;">
+                    <input type="hidden" name="portfolio_id" value="{{ p.id }}">
+                    <button class="tool-btn" type="submit">Select</button>
+                </form>
+            </div>
             {% endfor %}
-        </table>
-    {% else %}
-        <p>No holdings yet</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Portfolio Manager</h2>
+        <div class="grid grid-2">
+            <div class="box">
+                <h3>Create Portfolio</h3>
+                <form method="post" action="/portfolio/create" class="controls">
+                    <input class="tool-input" type="text" name="name" placeholder="Portfolio name">
+                    <select class="tool-select" name="risk">
+                        {% for item in risk_options %}
+                            <option value="{{ item }}">{{ item }}</option>
+                        {% endfor %}
+                    </select>
+                    <select class="tool-select" name="market">
+                        {% for item in market_options %}
+                            <option value="{{ item }}">{{ item }}</option>
+                        {% endfor %}
+                    </select>
+                    <select class="tool-select" name="exchange">
+                        {% for item in exchange_options %}
+                            <option value="{{ item }}">{{ item }}</option>
+                        {% endfor %}
+                    </select>
+                    <select class="tool-select" name="index">
+                        {% for item in index_options %}
+                            <option value="{{ item }}">{{ item }}</option>
+                        {% endfor %}
+                    </select>
+                    <input class="tool-input" type="text" name="currency" placeholder="Currency e.g. GBP">
+                    <button class="tool-btn" type="submit">Create</button>
+                </form>
+                <div class="small-note">Maximum portfolios: {{ max_portfolios }}</div>
+            </div>
+
+            <div class="box">
+                <h3>Active Portfolio Settings</h3>
+                <form method="post" action="/portfolio/update" class="controls">
+                    <input type="hidden" name="portfolio_id" value="{{ active_portfolio.id }}">
+                    <input class="tool-input" type="text" name="name" value="{{ active_portfolio.name }}">
+                    <select class="tool-select" name="risk">
+                        {% for item in risk_options %}
+                            <option value="{{ item }}" {% if item == active_portfolio.risk %}selected{% endif %}>{{ item }}</option>
+                        {% endfor %}
+                    </select>
+                    <select class="tool-select" name="market">
+                        {% for item in market_options %}
+                            <option value="{{ item }}" {% if item == active_portfolio.market %}selected{% endif %}>{{ item }}</option>
+                        {% endfor %}
+                    </select>
+                    <select class="tool-select" name="exchange">
+                        {% for item in exchange_options %}
+                            <option value="{{ item }}" {% if item == active_portfolio.exchange %}selected{% endif %}>{{ item }}</option>
+                        {% endfor %}
+                    </select>
+                    <select class="tool-select" name="index">
+                        {% for item in index_options %}
+                            <option value="{{ item }}" {% if item == active_portfolio.index %}selected{% endif %}>{{ item }}</option>
+                        {% endfor %}
+                    </select>
+                    <input class="tool-input" type="text" name="currency" value="{{ active_portfolio.currency }}">
+                    <button class="tool-btn" type="submit">Update</button>
+                </form>
+
+                <form method="post" action="/portfolio/delete" style="margin-top:12px;">
+                    <input type="hidden" name="portfolio_id" value="{{ active_portfolio.id }}">
+                    <button class="tool-btn remove" type="submit">Delete Active Portfolio</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {% if view == "dashboard" %}
+
+    <div class="card">
+        <h2>All Portfolios Comparison</h2>
+        {% if all_portfolios_chart.series|length > 0 %}
+            <div class="chart-wrap">
+                <canvas id="allPortfoliosChart" height="110"></canvas>
+            </div>
+        {% else %}
+            <div class="warning">No portfolio comparison data yet.</div>
+        {% endif %}
+    </div>
+
+    {% if best %}
+    <div class="card">
+        <h2>Top Opportunity for Active Portfolio</h2>
+        <h3>{{ best.name }} ({{ best.symbol }})</h3>
+        <div class="sub">{{ best.exchange }} | {{ best.market }} | {{ best.index }} | {{ best.currency }}</div>
+
+        <div class="hero-line">
+            <div class="hero-price">{{ best.price_display }}</div>
+            <div class="pill">Signal: <span class="{{ best.signal|lower }}">{{ best.signal }}</span></div>
+            <div class="pill">Risk Band:
+                <span class="{% if best.risk_band == 'Low' %}risk-low{% elif best.risk_band == 'Medium' %}risk-medium{% else %}risk-high{% endif %}">
+                    {{ best.risk_band }}
+                </span>
+            </div>
+            <div class="pill">Score: {{ best.score }}</div>
+        </div>
+
+        <form method="post" action="/portfolio/add" class="controls">
+            <input type="hidden" name="symbol" value="{{ best.symbol }}">
+            <input class="tool-input" type="number" step="0.01" min="0.01" name="units" placeholder="Units / Shares">
+            <button class="tool-btn" type="submit">Add to Portfolio</button>
+        </form>
+    </div>
     {% endif %}
-</div>
 
-<!-- PORTFOLIO CHART -->
-<div class="card">
-    <h2>Portfolio Performance</h2>
-    <canvas id="portfolioChart"></canvas>
-</div>
+    <div class="card">
+        <h2>{{ active_portfolio.name }}</h2>
 
-<script>
-const ctx = document.getElementById('portfolioChart');
+        {% if portfolio_data.summary|length > 0 %}
+            <div class="grid grid-3">
+                <div class="box">
+                    <div>Category: {{ active_portfolio.risk }}</div>
+                    <div>Market: {{ active_portfolio.market }}</div>
+                    <div>Exchange: {{ active_portfolio.exchange }}</div>
+                    <div>Index: {{ active_portfolio.index }}</div>
+                    <div>Currency: {{ active_portfolio.currency }}</div>
+                </div>
+                <div class="box">
+                    <div>Total holdings: {{ portfolio_data.holdings_count }}</div>
+                    <div>Total value: {{ portfolio_data.total_value }}</div>
+                    <div>Return: {{ portfolio_data.portfolio_return_pct }}%</div>
+                </div>
+                <div class="box">
+                    <div>Date format: day month year</div>
+                    <div>Values include units x current price</div>
+                </div>
+            </div>
 
-new Chart(ctx, {
-    type: 'line',
-    data: {
-        labels: {{ portfolio_data.portfolio_labels | tojson }},
-        datasets: [{
-            label: 'Portfolio Value',
-            data: {{ portfolio_data.portfolio_values | tojson }},
-            borderWidth: 2
-        }]
-    }
-});
-</script>
+            <div class="chart-wrap">
+                <h3>Portfolio Performance</h3>
+                <canvas id="portfolioChart" height="110"></canvas>
+            </div>
+
+            <div class="table-wrapper">
+                <table style="min-width: 1200px;">
+                    <thead>
+                        <tr>
+                            <th>Company</th>
+                            <th>Ticker</th>
+                            <th>Purchased</th>
+                            <th>Purchase Price</th>
+                            <th>Current Price</th>
+                            <th>Units</th>
+                            <th>Total Value</th>
+                            <th>Return</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in portfolio_data.summary %}
+                        <tr>
+                            <td>{{ item.name }}</td>
+                            <td>{{ item.symbol }}</td>
+                            <td>{{ item.purchase_date }}</td>
+                            <td>{{ item.purchase_price_display }}</td>
+                            <td>{{ item.current_price_display }}</td>
+                            <td>{{ item.units }}</td>
+                            <td>{{ item.current_value_display }}</td>
+                            <td class="{% if item.return_pct >= 0 %}buy{% else %}sell{% endif %}">{{ item.return_pct }}%</td>
+                            <td>
+                                <form method="post" action="/portfolio/remove">
+                                    <input type="hidden" name="symbol" value="{{ item.symbol }}">
+                                    <button class="tool-btn remove" type="submit">Remove</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="grid grid-2">
+                {% for item in portfolio_data.individual_charts %}
+                <div class="chart-wrap">
+                    <h3>{{ item.name }} ({{ item.symbol }})</h3>
+                    <div>Purchased: {{ item.purchase_date }}</div>
+                    <div>Purchase Price: {{ item.purchase_price_display }}</div>
+                    <div>Current Price: {{ item.current_price_display }}</div>
+                    <div>Units: {{ item.units }}</div>
+                    <div>Current Value: {{ item.current_value_display }}</div>
+                    <div>Return: <span class="{% if item.return_pct >= 0 %}buy{% else %}sell{% endif %}">{{ item.return_pct }}%</span></div>
+                    <canvas id="chart_{{ item.symbol|replace('.', '_') }}" height="120"></canvas>
+                </div>
+                {% endfor %}
+            </div>
+
+        {% else %}
+            <div class="warning">This portfolio has no holdings yet. Add from Opportunities.</div>
+        {% endif %}
+    </div>
+
+    {% else %}
+
+    <div class="card">
+        <h2>All Recommendations</h2>
+        <form method="get" action="/" class="controls">
+            <input type="hidden" name="view" value="opportunities">
+
+            <select class="tool-select" name="risk">
+                {% for item in risk_options %}
+                    <option value="{{ item }}" {% if item == risk %}selected{% endif %}>{{ item }}</option>
+                {% endfor %}
+            </select>
+
+            <select class="tool-select" name="market">
+                {% for item in market_options %}
+                    <option value="{{ item }}" {% if item == market %}selected{% endif %}>{{ item }}</option>
+                {% endfor %}
+            </select>
+
+            <select class="tool-select" name="exchange">
+                {% for item in exchange_options %}
+                    <option value="{{ item }}" {% if item == exchange %}selected{% endif %}>{{ item }}</option>
+                {% endfor %}
+            </select>
+
+            <select class="tool-select" name="index">
+                {% for item in index_options %}
+                    <option value="{{ item }}" {% if item == index %}selected{% endif %}>{{ item }}</option>
+                {% endfor %}
+            </select>
+
+            <select class="tool-select" name="signal">
+                {% for item in signal_options %}
+                    <option value="{{ item }}" {% if item == signal %}selected{% endif %}>{{ item }}</option>
+                {% endfor %}
+            </select>
+
+            <select class="tool-select" name="limit">
+                {% for item in limit_options %}
+                    <option value="{{ item }}" {% if item == limit_count %}selected{% endif %}>Top {{ item }}</option>
+                {% endfor %}
+            </select>
+
+            <button class="tool-btn" type="submit">Apply Filters</button>
+        </form>
+
+        <div class="small-note">
+            Filter recommendations by risk, stock exchange, market, signal, and result size.
+        </div>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Company</th>
+                        <th>Ticker</th>
+                        <th>Market</th>
+                        <th>Exchange</th>
+                        <th>Index</th>
+                        <th>Currency</th>
+                        <th>Signal</th>
+                        <th>Risk Band</th>
+                        <th>Score</th>
+                        <th>Confidence</th>
+                        <th>Trend</th>
+                        <th>RSI</th>
+                        <th>Reason</th>
+                        <th>Price</th>
+                        <th>Units</th>
+                        <th>Add</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stock in scored %}
+                    <tr {% if loop.index == 1 %}class="highlight"{% endif %}>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ stock.name }}</td>
+                        <td>{{ stock.symbol }}</td>
+                        <td>{{ stock.market }}</td>
+                        <td>{{ stock.exchange }}</td>
+                        <td>{{ stock.index }}</td>
+                        <td>{{ stock.currency }}</td>
+                        <td class="{{ stock.signal|lower }}">{{ stock.signal }}</td>
+                        <td>
+                            <span class="{% if stock.risk_band == 'Low' %}risk-low{% elif stock.risk_band == 'Medium' %}risk-medium{% else %}risk-high{% endif %}">
+                                {{ stock.risk_band }}
+                            </span>
+                        </td>
+                        <td>{{ stock.score }}</td>
+                        <td>{{ stock.confidence_label }} ({{ stock.confidence }})</td>
+                        <td>{{ stock.trend }}</td>
+                        <td>{{ stock.rsi }} / {{ stock.rsi_flag }}</td>
+                        <td>{{ stock.reason }}</td>
+                        <td>{{ stock.price_display }}</td>
+                        <td>
+                            <form method="post" action="/portfolio/add" class="controls">
+                                <input type="hidden" name="symbol" value="{{ stock.symbol }}">
+                                <input class="tool-input" type="number" step="0.01" min="0.01" name="units" placeholder="Units">
+                        </td>
+                        <td>
+                                <button class="tool-btn" type="submit">Add</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if scored|length == 0 %}
+            <div class="warning">No results matched the current filters.</div>
+        {% endif %}
+    </div>
+
+    {% endif %}
+
+    <script>
+        {% if portfolio_data.summary|length > 0 %}
+        new Chart(document.getElementById('portfolioChart'), {
+            type: 'line',
+            data: {
+                labels: {{ portfolio_data.portfolio_labels|tojson }},
+                datasets: [{
+                    label: 'Portfolio Value',
+                    data: {{ portfolio_data.portfolio_values|tojson }},
+                    borderWidth: 2,
+                    tension: 0.2
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { labels: { color: '#e5e7eb' } } },
+                scales: {
+                    x: { ticks: { color: '#94a3b8' }, grid: { color: '#1f2937' } },
+                    y: { ticks: { color: '#94a3b8' }, grid: { color: '#1f2937' } }
+                }
+            }
+        });
+
+        {% for item in portfolio_data.individual_charts %}
+        new Chart(document.getElementById('chart_{{ item.symbol|replace(".", "_") }}'), {
+            type: 'line',
+            data: {
+                labels: {{ item.labels|tojson }},
+                datasets: [{
+                    label: '{{ item.symbol }}',
+                    data: {{ item.values|tojson }},
+                    borderWidth: 2,
+                    tension: 0.2
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { labels: { color: '#e5e7eb' } } },
+                scales: {
+                    x: { ticks: { color: '#94a3b8' }, grid: { color: '#1f2937' } },
+                    y: { ticks: { color: '#94a3b8' }, grid: { color: '#1f2937' } }
+                }
+            }
+        });
+        {% endfor %}
+        {% endif %}
+
+        {% if all_portfolios_chart.series|length > 0 %}
+        new Chart(document.getElementById('allPortfoliosChart'), {
+            type: 'line',
+            data: {
+                labels: {{ all_portfolios_chart.labels|tojson }},
+                datasets: [
+                    {% for s in all_portfolios_chart.series %}
+                    {
+                        label: {{ s.portfolio_name|tojson }},
+                        data: {{ s.values|tojson }},
+                        borderWidth: 2,
+                        tension: 0.2
+                    }{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { labels: { color: '#e5e7eb' } } },
+                scales: {
+                    x: { ticks: { color: '#94a3b8' }, grid: { color: '#1f2937' } },
+                    y: { ticks: { color: '#94a3b8' }, grid: { color: '#1f2937' } }
+                }
+            }
+        });
+        {% endif %}
+    </script>
 
 </body>
 </html>
