@@ -1,76 +1,382 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>AI Stock Signals</title>
+    <title>CycleX AI</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body {
-            background: #0b0f1a;
-            color: white;
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            background: #0a0f1a;
+            color: #e5e7eb;
             font-family: Arial, sans-serif;
-            padding: 30px;
         }
-        .card {
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            padding: 20px;
+        }
+
+        h1 {
+            margin: 0 0 18px 0;
+            text-align: center;
+            font-size: 34px;
+            font-weight: 800;
+            background: linear-gradient(90deg, #60a5fa, #22c55e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        h2, h3 {
+            margin-top: 0;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+            color: #94a3b8;
+            font-size: 14px;
+        }
+
+        .badge {
             background: #111827;
             border: 1px solid #334155;
-            border-radius: 12px;
+            border-radius: 999px;
+            padding: 8px 12px;
+        }
+
+        .card {
+            width: 100%;
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border-radius: 14px;
             padding: 20px;
             margin-bottom: 20px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+            border: 1px solid #334155;
         }
-        .buy {
-            color: #22c55e;
+
+        .hero-line {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .hero-price {
+            font-size: 34px;
+            font-weight: 800;
+            color: #f8fafc;
+        }
+
+        .pill {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+
+        .sub {
+            color: #cbd5e1;
+            margin-bottom: 14px;
+            font-size: 18px;
+        }
+
+        .grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        @media (min-width: 950px) {
+            .grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+        }
+
+        .box {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.88);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 14px;
+            line-height: 1.6;
+        }
+
+        .metric {
+            margin-bottom: 8px;
+        }
+
+        .metric:last-child {
+            margin-bottom: 0;
+        }
+
+        .label {
+            color: #94a3b8;
             font-weight: bold;
         }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin: 12px 0 8px 0;
+        }
+
+        .tool-select, .tool-btn {
+            background: #0f172a;
+            color: #e5e7eb;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 14px;
+        }
+
+        .tool-btn {
+            cursor: pointer;
+        }
+
+        .tool-btn:hover {
+            border-color: #3b82f6;
+        }
+
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 10px;
+            border-radius: 12px;
+        }
+
         table {
             width: 100%;
+            min-width: 1450px;
             border-collapse: collapse;
         }
+
         th, td {
-            padding: 10px;
-            border-bottom: 1px solid #334155;
+            padding: 11px 10px;
             text-align: left;
+            vertical-align: top;
+            white-space: nowrap;
         }
+
+        th {
+            background: #334155;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #0f172a;
+        }
+
+        tbody tr:hover {
+            background: #132036;
+        }
+
+        .highlight {
+            background: #1d4ed8 !important;
+        }
+
+        .buy { color: #22c55e; font-weight: bold; }
+        .sell { color: #ef4444; font-weight: bold; }
+        .hold { color: #eab308; font-weight: bold; }
+
+        .high { color: #22c55e; font-weight: bold; }
+        .medium { color: #facc15; font-weight: bold; }
+        .low { color: #f87171; font-weight: bold; }
+
+        .risk-low { color: #22c55e; font-weight: bold; }
+        .risk-medium { color: #facc15; font-weight: bold; }
+        .risk-high { color: #ef4444; font-weight: bold; }
+
+        .muted {
+            color: #94a3b8;
+        }
+
         a {
             color: #60a5fa;
+        }
+
+        .warning {
+            background: #111827;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 10px;
+            color: #cbd5e1;
         }
     </style>
 </head>
 <body>
 
-    <h1>AI Stock Signals</h1>
+    <h1>CycleX AI</h1>
+
+    <div class="topbar">
+        <div class="badge">Risk-Adaptive Market Intelligence Platform</div>
+        <div class="badge">Selected Risk: {{ risk }}</div>
+        <div class="badge">Last updated: {{ now }}</div>
+        <div class="badge">Signals shown: {{ scored|length }}</div>
+    </div>
 
     <div class="card">
-        <a href="/onboarding?risk={{ risk }}">Set Risk Profile</a>
-        <p><strong>Selected Risk:</strong> {{ risk|capitalize }}</p>
+        <div class="controls">
+            <a class="tool-btn" href="/onboarding?risk={{ risk }}">Change Risk Profile</a>
+        </div>
+
+        <form method="get" action="/" class="controls">
+            <select class="tool-select" name="risk">
+                {% for item in risk_options %}
+                    <option value="{{ item }}" {% if item == risk %}selected{% endif %}>{{ item }}</option>
+                {% endfor %}
+            </select>
+
+            <select class="tool-select" name="market">
+                {% for item in market_options %}
+                    <option value="{{ item }}" {% if item == selected_market %}selected{% endif %}>{{ item }}</option>
+                {% endfor %}
+            </select>
+
+            <select class="tool-select" name="index">
+                {% for item in index_options %}
+                    <option value="{{ item }}" {% if item == selected_index %}selected{% endif %}>{{ item }}</option>
+                {% endfor %}
+            </select>
+
+            <button class="tool-btn" type="submit">Apply Scanner</button>
+        </form>
+
+        {% for item in disclaimers %}
+            <div class="warning">{{ item }}</div>
+        {% endfor %}
     </div>
 
     {% if best %}
     <div class="card">
-        <h2>Best Trade Right Now</h2>
-        <p><strong>{{ best.name }}</strong> ({{ best.ticker }})</p>
-        <p>Signal: <span class="buy">{{ best.signal }}</span></p>
-        <p>Score: {{ best.score }}</p>
+        <h2>Top Ranked Opportunity</h2>
+
+        <h3>{{ best.name }} ({{ best.symbol }})</h3>
+        <div class="sub">{{ best.exchange }} | {{ best.market }} | {{ best.index }} | {{ best.currency }}</div>
+
+        <div class="hero-line">
+            <div class="hero-price">{{ best.price_display }}</div>
+            <div class="pill">Signal: <span class="{{ best.signal|lower }}">{{ best.signal }}</span></div>
+            <div class="pill">Risk Band:
+                <span class="{% if best.risk_band == 'Low' %}risk-low{% elif best.risk_band == 'Medium' %}risk-medium{% else %}risk-high{% endif %}">
+                    {{ best.risk_band }}
+                </span>
+            </div>
+            <div class="pill">Score: {{ best.score }}</div>
+        </div>
+
+        <div class="grid">
+            <div class="box">
+                <div class="metric"><span class="label">Signal:</span> <span class="{{ best.signal|lower }}">{{ best.signal }}</span></div>
+                <div class="metric"><span class="label">Confidence:</span>
+                    <span class="{% if best.confidence_label == 'High' %}high{% elif best.confidence_label == 'Medium' %}medium{% else %}low{% endif %}">
+                        {{ best.confidence_label }}
+                    </span>
+                    ({{ best.confidence }})
+                </div>
+                <div class="metric"><span class="label">Trend:</span> {{ best.trend }}</div>
+                <div class="metric"><span class="label">Risk Band:</span>
+                    <span class="{% if best.risk_band == 'Low' %}risk-low{% elif best.risk_band == 'Medium' %}risk-medium{% else %}risk-high{% endif %}">
+                        {{ best.risk_band }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="box">
+                <div class="metric"><span class="label">RSI:</span> {{ best.rsi }} ({{ best.rsi_flag }})</div>
+                <div class="metric"><span class="label">Reason:</span> {{ best.reason }}</div>
+                <div class="metric"><span class="label">Volatility:</span> {{ best.volatility_pct }}%</div>
+            </div>
+
+            <div class="box">
+                <div class="metric"><span class="label">Day:</span> {{ best.d_high_display }} / {{ best.d_low_display }}</div>
+                <div class="metric"><span class="label">Week:</span> {{ best.w_high_display }} / {{ best.w_low_display }}</div>
+                <div class="metric"><span class="label">Month:</span> {{ best.m_high_display }} / {{ best.m_low_display }}</div>
+            </div>
+        </div>
     </div>
     {% endif %}
 
     <div class="card">
-        <h2>All Stocks</h2>
-        <table>
-            <tr>
-                <th>Company</th>
-                <th>Ticker</th>
-                <th>Signal</th>
-                <th>Score</th>
-            </tr>
-            {% for stock in scored %}
-            <tr>
-                <td>{{ stock.name }}</td>
-                <td>{{ stock.ticker }}</td>
-                <td>{{ stock.signal }}</td>
-                <td>{{ stock.score }}</td>
-            </tr>
-            {% endfor %}
-        </table>
+        <h2>Ranked Scanner Results</h2>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Company</th>
+                        <th>Ticker</th>
+                        <th>Market</th>
+                        <th>Index</th>
+                        <th>Exchange</th>
+                        <th>Currency</th>
+                        <th>Signal</th>
+                        <th>Risk Band</th>
+                        <th>Score</th>
+                        <th>Confidence</th>
+                        <th>Trend</th>
+                        <th>RSI</th>
+                        <th>Reason</th>
+                        <th>Price</th>
+                        <th>Day</th>
+                        <th>Week</th>
+                        <th>Month</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stock in scored %}
+                    <tr {% if loop.index == 1 %}class="highlight"{% endif %}>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ stock.name }}</td>
+                        <td>{{ stock.symbol }}</td>
+                        <td>{{ stock.market }}</td>
+                        <td>{{ stock.index }}</td>
+                        <td>{{ stock.exchange }}</td>
+                        <td>{{ stock.currency }}</td>
+                        <td class="{{ stock.signal|lower }}">{{ stock.signal }}</td>
+                        <td>
+                            <span class="{% if stock.risk_band == 'Low' %}risk-low{% elif stock.risk_band == 'Medium' %}risk-medium{% else %}risk-high{% endif %}">
+                                {{ stock.risk_band }}
+                            </span>
+                        </td>
+                        <td>{{ stock.score }}</td>
+                        <td>
+                            <span class="{% if stock.confidence_label == 'High' %}high{% elif stock.confidence_label == 'Medium' %}medium{% else %}low{% endif %}">
+                                {{ stock.confidence_label }}
+                            </span>
+                            ({{ stock.confidence }})
+                        </td>
+                        <td>{{ stock.trend }}</td>
+                        <td>{{ stock.rsi }} / {{ stock.rsi_flag }}</td>
+                        <td>{{ stock.reason }}</td>
+                        <td>{{ stock.price_display }}</td>
+                        <td>{{ stock.d_high_display }} / {{ stock.d_low_display }}</td>
+                        <td>{{ stock.w_high_display }} / {{ stock.w_low_display }}</td>
+                        <td>{{ stock.m_high_display }} / {{ stock.m_low_display }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if scored|length == 0 %}
+            <div class="warning">No results matched the current market, index, and risk filters.</div>
+        {% endif %}
     </div>
 
 </body>
