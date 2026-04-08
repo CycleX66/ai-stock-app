@@ -11,12 +11,10 @@
             color: white;
             font-family: Arial, sans-serif;
         }
-
         body {
             padding: 40px;
             text-align: center;
         }
-
         .card {
             background: #111827;
             border: 1px solid #334155;
@@ -25,7 +23,6 @@
             max-width: 520px;
             margin: auto;
         }
-
         h1 {
             margin-top: 0;
             font-size: 30px;
@@ -33,11 +30,6 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-
-        p {
-            color: #cbd5e1;
-        }
-
         select, button {
             padding: 12px;
             font-size: 16px;
@@ -46,65 +38,31 @@
             border-radius: 8px;
             border: none;
         }
-
         select {
             background: #0f172a;
             color: white;
             border: 1px solid #334155;
         }
-
         button {
             background: #3b82f6;
             color: white;
             cursor: pointer;
         }
-
-        button:hover {
-            background: #2563eb;
-        }
-
-        .small {
-            font-size: 13px;
-            color: #94a3b8;
-            margin-top: 12px;
-        }
     </style>
 </head>
 <body>
-
     <div class="card">
         <h1>CycleX AI</h1>
-
         <p>Risk-Adaptive Market Intelligence Platform</p>
-        <p>Select your risk level and initial scanner scope.</p>
 
-        <form action="/" method="GET">
-
+        <form action="/set-profile" method="post">
             <select name="risk">
                 {% for item in risk_options %}
                     <option value="{{ item }}" {% if item == risk %}selected{% endif %}>{{ item }}</option>
                 {% endfor %}
             </select>
-
-            <select name="market">
-                {% for item in market_options %}
-                    <option value="{{ item }}">{{ item }}</option>
-                {% endfor %}
-            </select>
-
-            <select name="index">
-                {% for item in index_options %}
-                    <option value="{{ item }}">{{ item }}</option>
-                {% endfor %}
-            </select>
-
-            <button type="submit">Continue to CycleX Scanner</button>
+            <button type="submit">Continue to CycleX</button>
         </form>
-
-        <div class="small">
-            This is not financial advice. CycleX AI provides market intelligence only.
-        </div>
     </div>
-
 </body>
 </html>
