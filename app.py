@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, session
-from datetime import datetime
+from datetime import datetime, timedelta
 import math
 import uuid
 import pandas as pd
@@ -12,16 +12,8 @@ MAX_PORTFOLIOS = 10
 
 RISK_OPTIONS = ["Defensive", "Cautious", "Balanced", "Growth", "Aggressive"]
 MARKET_OPTIONS = ["All Markets", "US", "UK", "Hong Kong", "India"]
-INDEX_OPTIONS = [
-    "All Indices",
-    "Nasdaq",
-    "Dow Jones",
-    "FTSE 100",
-    "FTSE 250",
-    "FTSE All-Share",
-    "Hang Seng",
-    "India Large Cap",
-]
+SIGNAL_OPTIONS = ["All Signals", "BUY", "HOLD", "SELL"]
+LIMIT_OPTIONS = [10, 25, 50, 100]
 
 DISCLAIMERS = [
     "CycleX AI provides market intelligence and analytics only. It does not provide personal financial advice.",
@@ -30,33 +22,70 @@ DISCLAIMERS = [
 ]
 
 UNIVERSE = [
+    # US NASDAQ
     {"symbol": "AAPL", "name": "Apple Inc.", "market": "US", "index": "Nasdaq", "exchange": "NASDAQ", "currency": "USD"},
     {"symbol": "MSFT", "name": "Microsoft Corporation", "market": "US", "index": "Nasdaq", "exchange": "NASDAQ", "currency": "USD"},
     {"symbol": "NVDA", "name": "NVIDIA Corporation", "market": "US", "index": "Nasdaq", "exchange": "NASDAQ", "currency": "USD"},
     {"symbol": "TSLA", "name": "Tesla, Inc.", "market": "US", "index": "Nasdaq", "exchange": "NASDAQ", "currency": "USD"},
     {"symbol": "AMZN", "name": "Amazon.com, Inc.", "market": "US", "index": "Nasdaq", "exchange": "NASDAQ", "currency": "USD"},
     {"symbol": "META", "name": "Meta Platforms, Inc.", "market": "US", "index": "Nasdaq", "exchange": "NASDAQ", "currency": "USD"},
+    {"symbol": "GOOGL", "name": "Alphabet Inc.", "market": "US", "index": "Nasdaq", "exchange": "NASDAQ", "currency": "USD"},
+    {"symbol": "NFLX", "name": "Netflix, Inc.", "market": "US", "index": "Nasdaq", "exchange": "NASDAQ", "currency": "USD"},
+    {"symbol": "ADBE", "name": "Adobe Inc.", "market": "US", "index": "Nasdaq", "exchange": "NASDAQ", "currency": "USD"},
+    {"symbol": "COST", "name": "Costco Wholesale Corp.", "market": "US", "index": "Nasdaq", "exchange": "NASDAQ", "currency": "USD"},
+    {"symbol": "INTC", "name": "Intel Corporation", "market": "US", "index": "Nasdaq", "exchange": "NASDAQ", "currency": "USD"},
+    {"symbol": "AMD", "name": "Advanced Micro Devices", "market": "US", "index": "Nasdaq", "exchange": "NASDAQ", "currency": "USD"},
+    {"symbol": "QCOM", "name": "QUALCOMM Incorporated", "market": "US", "index": "Nasdaq", "exchange": "NASDAQ", "currency": "USD"},
+    {"symbol": "CSCO", "name": "Cisco Systems, Inc.", "market": "US", "index": "Nasdaq", "exchange": "NASDAQ", "currency": "USD"},
+    {"symbol": "PEP", "name": "PepsiCo, Inc.", "market": "US", "index": "Nasdaq", "exchange": "NASDAQ", "currency": "USD"},
+
+    # US DOW / NYSE
     {"symbol": "JPM", "name": "JPMorgan Chase & Co.", "market": "US", "index": "Dow Jones", "exchange": "NYSE", "currency": "USD"},
     {"symbol": "V", "name": "Visa Inc.", "market": "US", "index": "Dow Jones", "exchange": "NYSE", "currency": "USD"},
     {"symbol": "MCD", "name": "McDonald's Corporation", "market": "US", "index": "Dow Jones", "exchange": "NYSE", "currency": "USD"},
     {"symbol": "CAT", "name": "Caterpillar Inc.", "market": "US", "index": "Dow Jones", "exchange": "NYSE", "currency": "USD"},
+    {"symbol": "DIS", "name": "The Walt Disney Company", "market": "US", "index": "Dow Jones", "exchange": "NYSE", "currency": "USD"},
+    {"symbol": "KO", "name": "The Coca-Cola Company", "market": "US", "index": "Dow Jones", "exchange": "NYSE", "currency": "USD"},
+    {"symbol": "HD", "name": "Home Depot, Inc.", "market": "US", "index": "Dow Jones", "exchange": "NYSE", "currency": "USD"},
+    {"symbol": "IBM", "name": "International Business Machines", "market": "US", "index": "Dow Jones", "exchange": "NYSE", "currency": "USD"},
+    {"symbol": "JNJ", "name": "Johnson & Johnson", "market": "US", "index": "Dow Jones", "exchange": "NYSE", "currency": "USD"},
+    {"symbol": "NKE", "name": "NIKE, Inc.", "market": "US", "index": "Dow Jones", "exchange": "NYSE", "currency": "USD"},
+    {"symbol": "PG", "name": "Procter & Gamble Co.", "market": "US", "index": "Dow Jones", "exchange": "NYSE", "currency": "USD"},
+    {"symbol": "WMT", "name": "Walmart Inc.", "market": "US", "index": "Dow Jones", "exchange": "NYSE", "currency": "USD"},
+
+    # UK LSE
     {"symbol": "AZN.L", "name": "AstraZeneca plc", "market": "UK", "index": "FTSE 100", "exchange": "LSE", "currency": "GBP"},
     {"symbol": "HSBA.L", "name": "HSBC Holdings plc", "market": "UK", "index": "FTSE 100", "exchange": "LSE", "currency": "GBP"},
     {"symbol": "BARC.L", "name": "Barclays plc", "market": "UK", "index": "FTSE 100", "exchange": "LSE", "currency": "GBP"},
     {"symbol": "SHEL.L", "name": "Shell plc", "market": "UK", "index": "FTSE 100", "exchange": "LSE", "currency": "GBP"},
     {"symbol": "ULVR.L", "name": "Unilever PLC", "market": "UK", "index": "FTSE 100", "exchange": "LSE", "currency": "GBP"},
+    {"symbol": "BP.L", "name": "BP p.l.c.", "market": "UK", "index": "FTSE 100", "exchange": "LSE", "currency": "GBP"},
+    {"symbol": "LGEN.L", "name": "Legal & General Group Plc", "market": "UK", "index": "FTSE All-Share", "exchange": "LSE", "currency": "GBP"},
+    {"symbol": "MNG.L", "name": "M&G plc", "market": "UK", "index": "FTSE All-Share", "exchange": "LSE", "currency": "GBP"},
     {"symbol": "BAB.L", "name": "Babcock International Group PLC", "market": "UK", "index": "FTSE 250", "exchange": "LSE", "currency": "GBP"},
     {"symbol": "GFRD.L", "name": "Galliford Try Holdings plc", "market": "UK", "index": "FTSE 250", "exchange": "LSE", "currency": "GBP"},
     {"symbol": "ITRK.L", "name": "Intertek Group plc", "market": "UK", "index": "FTSE 250", "exchange": "LSE", "currency": "GBP"},
-    {"symbol": "LGEN.L", "name": "Legal & General Group Plc", "market": "UK", "index": "FTSE All-Share", "exchange": "LSE", "currency": "GBP"},
-    {"symbol": "MNG.L", "name": "M&G plc", "market": "UK", "index": "FTSE All-Share", "exchange": "LSE", "currency": "GBP"},
+    {"symbol": "BA.L", "name": "BAE Systems plc", "market": "UK", "index": "FTSE 100", "exchange": "LSE", "currency": "GBP"},
+
+    # Hong Kong HKEX
     {"symbol": "0700.HK", "name": "Tencent Holdings Ltd.", "market": "Hong Kong", "index": "Hang Seng", "exchange": "HKEX", "currency": "HKD"},
     {"symbol": "1299.HK", "name": "AIA Group Limited", "market": "Hong Kong", "index": "Hang Seng", "exchange": "HKEX", "currency": "HKD"},
     {"symbol": "9988.HK", "name": "Alibaba Group Holding Limited", "market": "Hong Kong", "index": "Hang Seng", "exchange": "HKEX", "currency": "HKD"},
+    {"symbol": "2318.HK", "name": "Ping An Insurance", "market": "Hong Kong", "index": "Hang Seng", "exchange": "HKEX", "currency": "HKD"},
+    {"symbol": "0941.HK", "name": "China Mobile Limited", "market": "Hong Kong", "index": "Hang Seng", "exchange": "HKEX", "currency": "HKD"},
+    {"symbol": "0005.HK", "name": "HSBC Holdings plc HK", "market": "Hong Kong", "index": "Hang Seng", "exchange": "HKEX", "currency": "HKD"},
+
+    # India NSE
     {"symbol": "RELIANCE.NS", "name": "Reliance Industries Ltd.", "market": "India", "index": "India Large Cap", "exchange": "NSE", "currency": "INR"},
     {"symbol": "TCS.NS", "name": "Tata Consultancy Services Ltd.", "market": "India", "index": "India Large Cap", "exchange": "NSE", "currency": "INR"},
     {"symbol": "INFY.NS", "name": "Infosys Limited", "market": "India", "index": "India Large Cap", "exchange": "NSE", "currency": "INR"},
+    {"symbol": "HDFCBANK.NS", "name": "HDFC Bank Limited", "market": "India", "index": "India Large Cap", "exchange": "NSE", "currency": "INR"},
+    {"symbol": "ICICIBANK.NS", "name": "ICICI Bank Limited", "market": "India", "index": "India Large Cap", "exchange": "NSE", "currency": "INR"},
+    {"symbol": "LT.NS", "name": "Larsen & Toubro Ltd.", "market": "India", "index": "India Large Cap", "exchange": "NSE", "currency": "INR"},
 ]
+
+EXCHANGE_OPTIONS = ["All Exchanges"] + sorted({x["exchange"] for x in UNIVERSE})
+INDEX_OPTIONS = ["All Indices"] + sorted({x["index"] for x in UNIVERSE})
 
 
 def raw(value):
@@ -84,6 +113,10 @@ def money(value, currency):
     if v is None:
         return "-"
     return f"{currency_symbol(currency)}{v:,.2f}"
+
+
+def format_date(dt_value):
+    return dt_value.strftime("%d %b %Y")
 
 
 def confidence_label(value):
@@ -251,7 +284,6 @@ def get_reason(signal, trend, rsi_value, rsi_flag):
         return "Rebound from oversold conditions"
     if signal == "SELL" and "overbought RSI" in reasons:
         return "Overbought with downside risk"
-
     return ", ".join(reasons[:2]) if reasons else "Mixed signals"
 
 
@@ -264,8 +296,24 @@ def normalise_market(value):
     return value if value in MARKET_OPTIONS else "All Markets"
 
 
+def normalise_exchange(value):
+    return value if value in EXCHANGE_OPTIONS else "All Exchanges"
+
+
 def normalise_index(value):
     return value if value in INDEX_OPTIONS else "All Indices"
+
+
+def normalise_signal(value):
+    return value if value in SIGNAL_OPTIONS else "All Signals"
+
+
+def normalise_limit(value):
+    try:
+        v = int(value)
+        return v if v in LIMIT_OPTIONS else 25
+    except Exception:
+        return 25
 
 
 def find_meta(symbol):
@@ -343,24 +391,28 @@ def make_default_portfolio():
         "name": f"My {risk} Portfolio",
         "risk": risk,
         "market": "All Markets",
+        "exchange": "All Exchanges",
         "index": "All Indices",
+        "currency": "Mixed",
         "holdings": []
     }
     save_portfolios(portfolios)
     set_active_portfolio_id(pid)
 
 
-def filter_universe(market_choice, index_choice):
+def filter_universe(market_choice, exchange_choice, index_choice):
     filtered = UNIVERSE
     if market_choice != "All Markets":
         filtered = [x for x in filtered if x["market"] == market_choice]
+    if exchange_choice != "All Exchanges":
+        filtered = [x for x in filtered if x["exchange"] == exchange_choice]
     if index_choice != "All Indices":
         filtered = [x for x in filtered if x["index"] == index_choice]
     return filtered
 
 
-def scan_universe(selected_market, selected_index, selected_risk):
-    filtered = filter_universe(selected_market, selected_index)
+def scan_universe(selected_market, selected_exchange, selected_index, selected_risk, selected_signal, limit_count):
+    filtered = filter_universe(selected_market, selected_exchange, selected_index)
     results = []
 
     for s in filtered:
@@ -444,9 +496,13 @@ def scan_universe(selected_market, selected_index, selected_risk):
     allowed = allowed_risk_bands(selected_risk)
     results = [x for x in results if x["risk_band"] in allowed]
 
+    if selected_signal != "All Signals":
+        results = [x for x in results if x["signal"] == selected_signal]
+
     signal_order = {"BUY": 3, "HOLD": 2, "SELL": 1}
     results.sort(key=lambda x: (signal_order.get(x["signal"], 0), x["score"]), reverse=True)
-    return results
+
+    return results[:limit_count]
 
 
 def fetch_current_price(symbol):
@@ -484,12 +540,15 @@ def build_portfolio_analytics(portfolio):
             "portfolio_labels": [],
             "portfolio_values": [],
             "portfolio_return_pct": 0,
-            "individual_charts": []
+            "individual_charts": [],
+            "total_value": 0,
+            "holdings_count": 0
         }
 
     frames = []
     individual_charts = []
     summary = []
+    total_current_value = 0
 
     for holding in portfolio["holdings"]:
         symbol = holding["symbol"]
@@ -497,6 +556,7 @@ def build_portfolio_analytics(portfolio):
         currency = holding["currency"]
         purchase_date = holding["purchase_date"]
         purchase_price = raw(holding["purchase_price"])
+        units = raw(holding["units"]) or 0
 
         close_series = build_holding_series(symbol, purchase_date)
         if close_series is None or close_series.empty:
@@ -509,12 +569,17 @@ def build_portfolio_analytics(portfolio):
         if current_price is None or purchase_price is None or purchase_price == 0:
             continue
 
-        current_return_pct = round(((current_price - purchase_price) / purchase_price) * 100, 2)
+        current_value = round(current_price * units, 2)
+        cost_value = round(purchase_price * units, 2)
+        return_pct = round(((current_price - purchase_price) / purchase_price) * 100, 2)
 
-        df = close_series.to_frame(name=symbol)
+        total_current_value += current_value
+
+        holding_value_series = close_series * units
+        df = holding_value_series.to_frame(name=symbol)
         frames.append(df)
 
-        labels = [d.strftime("%Y-%m-%d") for d in df.index]
+        labels = [format_date(d) for d in df.index]
         values = [round(float(v), 2) for v in df[symbol].tolist()]
 
         individual_charts.append({
@@ -525,7 +590,9 @@ def build_portfolio_analytics(portfolio):
             "purchase_date": purchase_date,
             "purchase_price_display": money(purchase_price, currency),
             "current_price_display": money(current_price, currency),
-            "return_pct": current_return_pct,
+            "units": units,
+            "current_value_display": money(current_value, currency),
+            "return_pct": return_pct,
         })
 
         summary.append({
@@ -534,7 +601,10 @@ def build_portfolio_analytics(portfolio):
             "purchase_date": purchase_date,
             "purchase_price_display": money(purchase_price, currency),
             "current_price_display": money(current_price, currency),
-            "return_pct": current_return_pct,
+            "units": units,
+            "current_value_display": money(current_value, currency),
+            "cost_value_display": money(cost_value, currency),
+            "return_pct": return_pct,
         })
 
     if not frames:
@@ -543,13 +613,15 @@ def build_portfolio_analytics(portfolio):
             "portfolio_labels": [],
             "portfolio_values": [],
             "portfolio_return_pct": 0,
-            "individual_charts": []
+            "individual_charts": [],
+            "total_value": 0,
+            "holdings_count": 0
         }
 
     portfolio_df = pd.concat(frames, axis=1).sort_index().ffill().dropna(how="all")
     portfolio_df["Total"] = portfolio_df.sum(axis=1)
 
-    portfolio_labels = [d.strftime("%Y-%m-%d") for d in portfolio_df.index]
+    portfolio_labels = [format_date(d) for d in portfolio_df.index]
     portfolio_values = [round(float(v), 2) for v in portfolio_df["Total"].tolist()]
 
     portfolio_return_pct = 0
@@ -564,7 +636,9 @@ def build_portfolio_analytics(portfolio):
         "portfolio_labels": portfolio_labels,
         "portfolio_values": portfolio_values,
         "portfolio_return_pct": portfolio_return_pct,
-        "individual_charts": individual_charts
+        "individual_charts": individual_charts,
+        "total_value": round(total_current_value, 2),
+        "holdings_count": len(summary)
     }
 
 
@@ -594,26 +668,64 @@ def home():
     ensure_session_state()
     make_default_portfolio()
 
+    view = request.args.get("view", "dashboard")
+    if view not in ["dashboard", "opportunities"]:
+        view = "dashboard"
+
     active_portfolio = get_active_portfolio()
     if not active_portfolio:
         return redirect("/onboarding")
 
-    selected_risk = normalise_risk(active_portfolio.get("risk"))
-    selected_market = normalise_market(active_portfolio.get("market"))
-    selected_index = normalise_index(active_portfolio.get("index"))
+    selected_risk = normalise_risk(request.args.get("risk", active_portfolio.get("risk")))
+    selected_market = normalise_market(request.args.get("market", active_portfolio.get("market")))
+    selected_exchange = normalise_exchange(request.args.get("exchange", active_portfolio.get("exchange", "All Exchanges")))
+    selected_index = normalise_index(request.args.get("index", active_portfolio.get("index")))
+    selected_signal = normalise_signal(request.args.get("signal", "All Signals"))
+    limit_count = normalise_limit(request.args.get("limit", 25))
 
-    scored = scan_universe(selected_market, selected_index, selected_risk)
+    scored = scan_universe(
+        selected_market,
+        selected_exchange,
+        selected_index,
+        selected_risk,
+        selected_signal,
+        limit_count
+    )
     best = scored[0] if scored else None
 
+    portfolios_dict = get_portfolios()
     portfolio_data = build_portfolio_analytics(active_portfolio)
-    all_portfolios_chart = build_all_portfolios_chart(get_portfolios())
+    all_portfolios_chart = build_all_portfolios_chart(portfolios_dict)
     portfolio_symbols = {h["symbol"] for h in active_portfolio.get("holdings", [])}
+
+    portfolio_cards = []
+    for _, p in portfolios_dict.items():
+        pdata = build_portfolio_analytics(p)
+        portfolio_cards.append({
+            "id": p["id"],
+            "name": p["name"],
+            "risk": p["risk"],
+            "market": p["market"],
+            "exchange": p.get("exchange", "All Exchanges"),
+            "index": p["index"],
+            "currency": p.get("currency", "Mixed"),
+            "holdings_count": pdata["holdings_count"],
+            "total_value": pdata["total_value"],
+            "return_pct": pdata["portfolio_return_pct"]
+        })
 
     return render_template(
         "index.html",
+        view=view,
         risk=selected_risk,
+        market=selected_market,
+        exchange=selected_exchange,
+        index=selected_index,
+        signal=selected_signal,
+        limit_count=limit_count,
         active_portfolio=active_portfolio,
-        portfolios=list(get_portfolios().values()),
+        portfolios=list(portfolios_dict.values()),
+        portfolio_cards=portfolio_cards,
         scored=scored,
         best=best,
         portfolio_data=portfolio_data,
@@ -621,7 +733,10 @@ def home():
         portfolio_symbols=portfolio_symbols,
         risk_options=RISK_OPTIONS,
         market_options=MARKET_OPTIONS,
+        exchange_options=EXCHANGE_OPTIONS,
         index_options=INDEX_OPTIONS,
+        signal_options=SIGNAL_OPTIONS,
+        limit_options=LIMIT_OPTIONS,
         disclaimers=DISCLAIMERS,
         now=datetime.now().strftime("%H:%M:%S"),
         max_portfolios=MAX_PORTFOLIOS
@@ -648,7 +763,9 @@ def set_profile():
             "name": f"My {risk} Portfolio",
             "risk": risk,
             "market": "All Markets",
+            "exchange": "All Exchanges",
             "index": "All Indices",
+            "currency": "Mixed",
             "holdings": []
         }
         save_portfolios(portfolios)
@@ -671,7 +788,9 @@ def create_portfolio():
 
     risk = normalise_risk(request.form.get("risk", get_user_risk()))
     market = normalise_market(request.form.get("market", "All Markets"))
+    exchange = normalise_exchange(request.form.get("exchange", "All Exchanges"))
     index = normalise_index(request.form.get("index", "All Indices"))
+    currency = request.form.get("currency", "Mixed").strip() or "Mixed"
 
     pid = str(uuid.uuid4())
     portfolios[pid] = {
@@ -679,7 +798,9 @@ def create_portfolio():
         "name": name,
         "risk": risk,
         "market": market,
+        "exchange": exchange,
         "index": index,
+        "currency": currency,
         "holdings": []
     }
     save_portfolios(portfolios)
@@ -705,7 +826,9 @@ def update_portfolio():
     portfolios[pid]["name"] = (request.form.get("name") or portfolios[pid]["name"]).strip() or portfolios[pid]["name"]
     portfolios[pid]["risk"] = normalise_risk(request.form.get("risk", portfolios[pid]["risk"]))
     portfolios[pid]["market"] = normalise_market(request.form.get("market", portfolios[pid]["market"]))
+    portfolios[pid]["exchange"] = normalise_exchange(request.form.get("exchange", portfolios[pid].get("exchange", "All Exchanges")))
     portfolios[pid]["index"] = normalise_index(request.form.get("index", portfolios[pid]["index"]))
+    portfolios[pid]["currency"] = request.form.get("currency", portfolios[pid].get("currency", "Mixed")).strip() or portfolios[pid].get("currency", "Mixed")
 
     save_portfolios(portfolios)
     set_active_portfolio_id(pid)
@@ -744,6 +867,11 @@ def add_to_portfolio():
     if not meta:
         return redirect("/")
 
+    try:
+        units = float(request.form.get("units", "1"))
+    except Exception:
+        units = 1.0
+
     holdings = active_portfolio.get("holdings", [])
     if symbol in [h["symbol"] for h in holdings]:
         return redirect("/")
@@ -753,8 +881,9 @@ def add_to_portfolio():
         "symbol": symbol,
         "name": meta["name"],
         "currency": meta["currency"],
-        "purchase_date": datetime.now().strftime("%Y-%m-%d"),
-        "purchase_price": purchase_price
+        "purchase_date": format_date(datetime.now()),
+        "purchase_price": purchase_price,
+        "units": units
     })
 
     portfolios = get_portfolios()
