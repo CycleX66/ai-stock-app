@@ -1,77 +1,55 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>AI Stock Signals</title>
+    <title>Investment Risk Profile</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body {
             background: #0b0f1a;
             color: white;
             font-family: Arial, sans-serif;
-            padding: 30px;
+            text-align: center;
+            padding: 40px;
         }
         .card {
             background: #111827;
             border: 1px solid #334155;
             border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
+            padding: 30px;
+            max-width: 400px;
+            margin: auto;
         }
-        .buy {
-            color: #22c55e;
-            font-weight: bold;
-        }
-        table {
+        select, button {
+            padding: 12px;
+            font-size: 16px;
+            margin-top: 15px;
             width: 100%;
-            border-collapse: collapse;
+            border-radius: 8px;
+            border: none;
         }
-        th, td {
-            padding: 10px;
-            border-bottom: 1px solid #334155;
-            text-align: left;
-        }
-        a {
-            color: #60a5fa;
+        button {
+            background: #3b82f6;
+            color: white;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
-
-    <h1>AI Stock Signals</h1>
-
     <div class="card">
-        <a href="/onboarding">Set Risk Profile</a>
-        <p>Risk: {{ risk }}</p>
-    </div>
+        <h1>📊 Investment Risk Profile</h1>
+        <p>Select your risk level:</p>
 
-    {% if best %}
-    <div class="card">
-        <h2>Best Trade Right Now</h2>
-        <p><strong>{{ best.name }}</strong> ({{ best.ticker }})</p>
-        <p>Signal: <span class="buy">{{ best.signal }}</span></p>
-        <p>Score: {{ best.score }}</p>
-    </div>
-    {% endif %}
+        <form action="/" method="GET">
+            <select name="risk">
+                <option value="defensive">Defensive</option>
+                <option value="cautious">Cautious</option>
+                <option value="balanced">Balanced</option>
+                <option value="growth">Growth</option>
+                <option value="aggressive">Aggressive</option>
+            </select>
 
-    <div class="card">
-        <h2>All Stocks</h2>
-        <table>
-            <tr>
-                <th>Company</th>
-                <th>Ticker</th>
-                <th>Signal</th>
-                <th>Score</th>
-            </tr>
-            {% for stock in scored %}
-            <tr>
-                <td>{{ stock.name }}</td>
-                <td>{{ stock.ticker }}</td>
-                <td>{{ stock.signal }}</td>
-                <td>{{ stock.score }}</td>
-            </tr>
-            {% endfor %}
-        </table>
+            <button type="submit">Continue</button>
+        </form>
     </div>
-
 </body>
 </html>
