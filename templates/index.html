@@ -15,6 +15,19 @@
         }
         * { box-sizing: border-box; }
         body { padding: 18px; }
+
+        .brand-wrap {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        .brand-logo {
+            max-width: 720px;
+            width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto 10px auto;
+            border-radius: 14px;
+        }
         h1 {
             margin: 0 0 16px 0;
             text-align: center;
@@ -200,7 +213,10 @@
 </head>
 <body>
 
-    <h1>CycleX AI</h1>
+    <div class="brand-wrap">
+        <img src="{{ url_for('static', filename='cyclex-logo.jpeg') }}" alt="CycleX AI Logo" class="brand-logo">
+        <h1>CycleX AI</h1>
+    </div>
 
     <div class="nav">
         <a href="/?view=dashboard" class="{% if view == 'dashboard' %}active{% endif %}">Dashboard</a>
@@ -483,7 +499,7 @@
         </form>
 
         <div class="small-note">
-            Filter recommendations by risk, stock exchange, market, signal, and result size.
+            Filter by risk, market, exchange, index, signal and result count.
         </div>
 
         <div class="table-wrapper">
