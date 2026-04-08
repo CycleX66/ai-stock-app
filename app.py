@@ -10,8 +10,9 @@ stocks = [
 
 @app.route("/")
 def home():
-    risk = request.args.get("risk", "balanced")
+    risk = request.args.get("risk", "defensive").lower()
     best = stocks[0] if stocks else None
+
     return render_template(
         "index.html",
         scored=stocks,
@@ -21,7 +22,8 @@ def home():
 
 @app.route("/onboarding")
 def onboarding():
-    return render_template("onboarding.html")
+    risk = request.args.get("risk", "defensive").lower()
+    return render_template("onboarding.html", risk=risk)
 
 if __name__ == "__main__":
     app.run(debug=True)
