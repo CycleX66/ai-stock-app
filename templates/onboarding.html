@@ -19,21 +19,21 @@
             background: #111827;
             border: 1px solid #334155;
             border-radius: 16px;
-            padding: 30px;
-            max-width: 760px;
+            padding: 32px;
+            max-width: 780px;
             margin: auto;
             box-shadow: 0 8px 30px rgba(0,0,0,0.35);
         }
         .logo {
             width: 100%;
-            max-width: 620px;
+            max-width: 640px;
             height: auto;
             display: block;
             margin: 0 auto 24px auto;
             border-radius: 12px;
         }
         h1 {
-            margin-top: 0;
+            margin: 0 0 8px 0;
             font-size: 30px;
             background: linear-gradient(90deg, #60a5fa, #22c55e);
             -webkit-background-clip: text;
@@ -41,13 +41,14 @@
         }
         p {
             color: #cbd5e1;
+            margin-bottom: 18px;
         }
         select, button {
-            padding: 12px;
+            padding: 14px;
             font-size: 16px;
-            margin-top: 15px;
+            margin-top: 14px;
             width: 100%;
-            border-radius: 8px;
+            border-radius: 10px;
             border: none;
         }
         select {
@@ -56,9 +57,12 @@
             border: 1px solid #334155;
         }
         button {
-            background: #3b82f6;
+            background: #2563eb;
             color: white;
             cursor: pointer;
+        }
+        button:hover {
+            background: #1d4ed8;
         }
     </style>
 </head>
@@ -67,7 +71,7 @@
         <img src="{{ url_for('static', filename='cyclex-logo.jpeg') }}" alt="CycleX AI Logo" class="logo">
 
         <h1>CycleX AI</h1>
-        <p>Risk-Adaptive Market Intelligence Platform</p>
+        <p>AI Risk-Adaptive Market Intelligence Platform</p>
 
         <form action="/set-profile" method="post">
             <select name="risk">
