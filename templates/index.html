@@ -1,566 +1,806 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>CycleX AI</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            background: #0a0f1a;
-            color: #e5e7eb;
-            font-family: Arial, sans-serif;
+from flask import Flask, render_template, request, redirect, session
+from datetime import datetime
+import math
+import uuid
+import pandas as pd
+import yfinance as yf
+
+app = Flask(__name__, template_folder="templates")
+app.secret_key = "cyc1ex-change-this-secret-key"
+
+MAX_PORTFOLIOS = 10
+
+RISK_OPTIONS = ["Defensive", "Cautious", "Balanced", "Growth", "Aggressive"]
+MARKET_OPTIONS = ["All Markets", "US", "UK", "Hong Kong", "India"]
+INDEX_OPTIONS = [
+    "All Indices",
+    "Nasdaq",
+    "Dow Jones",
+    "FTSE 100",
+    "FTSE 250",
+    "FTSE All-Share",
+    "Hang Seng",
+    "India Large Cap",
+]
+
+DISCLAIMERS = [
+    "CycleX AI provides market intelligence and analytics only. It does not provide personal financial advice.",
+    "Investments can go down as well as up. You may get back less than you invest.",
+    "Past performance is not a reliable indicator of future results.",
+]
+
+UNIVERSE = [
+    {"symbol": "AAPL", "name": "Apple Inc.", "market": "US", "index": "Nasdaq", "exchange": "NASDAQ", "currency": "USD"},
+    {"symbol": "MSFT", "name": "Microsoft Corporation", "market": "US", "index": "Nasdaq", "exchange": "NASDAQ", "currency": "USD"},
+    {"symbol": "NVDA", "name": "NVIDIA Corporation", "market": "US", "index": "Nasdaq", "exchange": "NASDAQ", "currency": "USD"},
+    {"symbol": "TSLA", "name": "Tesla, Inc.", "market": "US", "index": "Nasdaq", "exchange": "NASDAQ", "currency": "USD"},
+    {"symbol": "AMZN", "name": "Amazon.com, Inc.", "market": "US", "index": "Nasdaq", "exchange": "NASDAQ", "currency": "USD"},
+    {"symbol": "META", "name": "Meta Platforms, Inc.", "market": "US", "index": "Nasdaq", "exchange": "NASDAQ", "currency": "USD"},
+
+    {"symbol": "JPM", "name": "JPMorgan Chase & Co.", "market": "US", "index": "Dow Jones", "exchange": "NYSE", "currency": "USD"},
+    {"symbol": "V", "name": "Visa Inc.", "market": "US", "index": "Dow Jones", "exchange": "NYSE", "currency": "USD"},
+    {"symbol": "MCD", "name": "McDonald's Corporation", "market": "US", "index": "Dow Jones", "exchange": "NYSE", "currency": "USD"},
+    {"symbol": "CAT", "name": "Caterpillar Inc.", "market": "US", "index": "Dow Jones", "exchange": "NYSE", "currency": "USD"},
+
+    {"symbol": "AZN.L", "name": "AstraZeneca plc", "market": "UK", "index": "FTSE 100", "exchange": "LSE", "currency": "GBP"},
+    {"symbol": "HSBA.L", "name": "HSBC Holdings plc", "market": "UK", "index": "FTSE 100", "exchange": "LSE", "currency": "GBP"},
+    {"symbol": "BARC.L", "name": "Barclays plc", "market": "UK", "index": "FTSE 100", "exchange": "LSE", "currency": "GBP"},
+    {"symbol": "SHEL.L", "name": "Shell plc", "market": "UK", "index": "FTSE 100", "exchange": "LSE", "currency": "GBP"},
+    {"symbol": "ULVR.L", "name": "Unilever PLC", "market": "UK", "index": "FTSE 100", "exchange": "LSE", "currency": "GBP"},
+
+    {"symbol": "BAB.L", "name": "Babcock International Group PLC", "market": "UK", "index": "FTSE 250", "exchange": "LSE", "currency": "GBP"},
+    {"symbol": "GFRD.L", "name": "Galliford Try Holdings plc", "market": "UK", "index": "FTSE 250", "exchange": "LSE", "currency": "GBP"},
+    {"symbol": "ITRK.L", "name": "Intertek Group plc", "market": "UK", "index": "FTSE 250", "exchange": "LSE", "currency": "GBP"},
+
+    {"symbol": "LGEN.L", "name": "Legal & General Group Plc", "market": "UK", "index": "FTSE All-Share", "exchange": "LSE", "currency": "GBP"},
+    {"symbol": "MNG.L", "name": "M&G plc", "market": "UK", "index": "FTSE All-Share", "exchange": "LSE", "currency": "GBP"},
+
+    {"symbol": "0700.HK", "name": "Tencent Holdings Ltd.", "market": "Hong Kong", "index": "Hang Seng", "exchange": "HKEX", "currency": "HKD"},
+    {"symbol": "1299.HK", "name": "AIA Group Limited", "market": "Hong Kong", "index": "Hang Seng", "exchange": "HKEX", "currency": "HKD"},
+    {"symbol": "9988.HK", "name": "Alibaba Group Holding Limited", "market": "Hong Kong", "index": "Hang Seng", "exchange": "HKEX", "currency": "HKD"},
+
+    {"symbol": "RELIANCE.NS", "name": "Reliance Industries Ltd.", "market": "India", "index": "India Large Cap", "exchange": "NSE", "currency": "INR"},
+    {"symbol": "TCS.NS", "name": "Tata Consultancy Services Ltd.", "market": "India", "index": "India Large Cap", "exchange": "NSE", "currency": "INR"},
+    {"symbol": "INFY.NS", "name": "Infosys Limited", "market": "India", "index": "India Large Cap", "exchange": "NSE", "currency": "INR"},
+]
+
+
+def raw(value):
+    try:
+        if value is None or pd.isna(value) or (isinstance(value, float) and math.isnan(value)):
+            return None
+        return float(value)
+    except Exception:
+        return None
+
+
+def clean(value):
+    v = raw(value)
+    if v is None:
+        return "-"
+    return round(v, 2)
+
+
+def currency_symbol(currency):
+    return {
+        "USD": "$",
+        "GBP": "£",
+        "HKD": "HK$",
+        "INR": "₹",
+    }.get(currency, "")
+
+
+def money(value, currency):
+    v = raw(value)
+    if v is None:
+        return "-"
+    return f"{currency_symbol(currency)}{v:,.2f}"
+
+
+def confidence_label(value):
+    if value >= 85:
+        return "High"
+    if value >= 65:
+        return "Medium"
+    return "Low"
+
+
+def rsi_status(rsi):
+    if rsi is None:
+        return "Unknown"
+    if rsi <= 30:
+        return "Oversold"
+    if rsi >= 70:
+        return "Overbought"
+    return "Neutral"
+
+
+def allowed_risk_bands(user_risk):
+    mapping = {
+        "Defensive": {"Low"},
+        "Cautious": {"Low", "Medium"},
+        "Balanced": {"Low", "Medium"},
+        "Growth": {"Low", "Medium", "High"},
+        "Aggressive": {"Low", "Medium", "High"},
+    }
+    return mapping.get(user_risk, {"Low", "Medium"})
+
+
+def stock_risk_band(volatility_pct, confidence):
+    score_value = 0
+
+    if volatility_pct is None:
+        score_value += 2
+    elif volatility_pct < 20:
+        score_value += 1
+    elif volatility_pct < 35:
+        score_value += 2
+    else:
+        score_value += 3
+
+    if confidence >= 85:
+        score_value -= 1
+    elif confidence < 60:
+        score_value += 1
+
+    if score_value <= 1:
+        return "Low"
+    if score_value <= 3:
+        return "Medium"
+    return "High"
+
+
+def compute_rsi(close_series, period=14):
+    delta = close_series.diff()
+    gain = delta.clip(lower=0)
+    loss = -delta.clip(upper=0)
+    avg_gain = gain.rolling(period).mean()
+    avg_loss = loss.rolling(period).mean()
+    rs = avg_gain / avg_loss
+    return 100 - (100 / (1 + rs))
+
+
+def get_signal(price, ma50, ma200, rsi):
+    if price is None:
+        return "HOLD", 0, "Flat"
+
+    if ma50 is None:
+        return "HOLD", 40, "Flat"
+
+    trend = "Flat"
+
+    if ma200 is None:
+        if price > ma50:
+            trend = "Up"
+        elif price < ma50:
+            trend = "Down"
+    else:
+        if price > ma50 and ma50 > ma200:
+            trend = "Up"
+        elif price < ma50 and ma50 < ma200:
+            trend = "Down"
+
+    if rsi is None:
+        if trend == "Up":
+            return "BUY", 70, trend
+        if trend == "Down":
+            return "SELL", 70, trend
+        return "HOLD", 50, trend
+
+    if trend == "Up" and rsi < 70:
+        confidence = 75
+        if rsi <= 35:
+            confidence = 90
+        elif rsi <= 45:
+            confidence = 82
+        return "BUY", confidence, trend
+
+    if trend == "Down" and rsi > 30:
+        confidence = 75
+        if rsi >= 65:
+            confidence = 90
+        elif rsi >= 55:
+            confidence = 82
+        return "SELL", confidence, trend
+
+    if rsi <= 30:
+        return "BUY", 80, "Rebound"
+    if rsi >= 70:
+        return "SELL", 80, "Stretched"
+
+    return "HOLD", 55, trend
+
+
+def score_signal(signal, confidence, price, month_high, month_low, rsi):
+    base = confidence
+
+    try:
+        if price is not None and month_high is not None and month_low is not None:
+            rng = month_high - month_low
+            if rng > 0:
+                pos = (price - month_low) / rng
+                if signal == "BUY":
+                    base += (1 - pos) * 10
+                elif signal == "SELL":
+                    base += pos * 10
+                else:
+                    base -= abs(pos - 0.5) * 6
+    except Exception:
+        pass
+
+    try:
+        if rsi is not None:
+            if signal == "BUY" and rsi <= 35:
+                base += 8
+            elif signal == "SELL" and rsi >= 65:
+                base += 8
+            elif signal == "HOLD" and 45 <= rsi <= 55:
+                base += 3
+    except Exception:
+        pass
+
+    return round(base, 1)
+
+
+def get_reason(signal, trend, rsi_value, rsi_flag):
+    reasons = []
+
+    if trend == "Up":
+        reasons.append("uptrend")
+    elif trend == "Down":
+        reasons.append("downtrend")
+    elif trend == "Rebound":
+        reasons.append("rebound setup")
+    elif trend == "Stretched":
+        reasons.append("stretched move")
+
+    if rsi_flag == "Oversold":
+        reasons.append("oversold RSI")
+    elif rsi_flag == "Overbought":
+        reasons.append("overbought RSI")
+    elif rsi_flag == "Neutral" and rsi_value is not None:
+        reasons.append("neutral RSI")
+
+    if signal == "BUY" and "oversold RSI" in reasons:
+        return "Rebound from oversold conditions"
+    if signal == "SELL" and "overbought RSI" in reasons:
+        return "Overbought with downside risk"
+    return ", ".join(reasons[:2]) if reasons else "Mixed signals"
+
+
+def normalise_risk(value):
+    value = (value or "Balanced").capitalize()
+    return value if value in RISK_OPTIONS else "Balanced"
+
+
+def normalise_market(value):
+    return value if value in MARKET_OPTIONS else "All Markets"
+
+
+def normalise_index(value):
+    return value if value in INDEX_OPTIONS else "All Indices"
+
+
+def find_meta(symbol):
+    return next((x for x in UNIVERSE if x["symbol"] == symbol), None)
+
+
+def ensure_session_state():
+    if "user_profile" not in session:
+        session["user_profile"] = {"risk": "Balanced"}
+    if "portfolios" not in session:
+        session["portfolios"] = {}
+    if "active_portfolio_id" not in session:
+        session["active_portfolio_id"] = None
+
+
+def get_user_risk():
+    ensure_session_state()
+    return normalise_risk(session.get("user_profile", {}).get("risk", "Balanced"))
+
+
+def set_user_risk(risk):
+    ensure_session_state()
+    session["user_profile"] = {"risk": normalise_risk(risk)}
+    session.modified = True
+
+
+def get_portfolios():
+    ensure_session_state()
+    return session.get("portfolios", {})
+
+
+def save_portfolios(portfolios):
+    session["portfolios"] = portfolios
+    session.modified = True
+
+
+def get_active_portfolio_id():
+    ensure_session_state()
+    pid = session.get("active_portfolio_id")
+    portfolios = get_portfolios()
+    if pid and pid in portfolios:
+        return pid
+    if portfolios:
+        first_id = next(iter(portfolios.keys()))
+        session["active_portfolio_id"] = first_id
+        session.modified = True
+        return first_id
+    return None
+
+
+def set_active_portfolio_id(pid):
+    portfolios = get_portfolios()
+    if pid in portfolios:
+        session["active_portfolio_id"] = pid
+        session.modified = True
+
+
+def get_active_portfolio():
+    pid = get_active_portfolio_id()
+    portfolios = get_portfolios()
+    if pid and pid in portfolios:
+        return portfolios[pid]
+    return None
+
+
+def make_default_portfolio():
+    portfolios = get_portfolios()
+    if portfolios:
+        return
+
+    risk = get_user_risk()
+    pid = str(uuid.uuid4())
+    portfolios[pid] = {
+        "id": pid,
+        "name": f"My {risk} Portfolio",
+        "risk": risk,
+        "market": "All Markets",
+        "index": "All Indices",
+        "holdings": []
+    }
+    save_portfolios(portfolios)
+    set_active_portfolio_id(pid)
+
+
+def filter_universe(market_choice, index_choice):
+    filtered = UNIVERSE
+    if market_choice != "All Markets":
+        filtered = [x for x in filtered if x["market"] == market_choice]
+    if index_choice != "All Indices":
+        filtered = [x for x in filtered if x["index"] == index_choice]
+    return filtered
+
+
+def scan_universe(selected_market, selected_index, selected_risk):
+    filtered = filter_universe(selected_market, selected_index)
+    results = []
+
+    for s in filtered:
+        try:
+            ticker = yf.Ticker(s["symbol"])
+            hist = ticker.history(period="1y", auto_adjust=False)
+
+            if hist.empty:
+                continue
+
+            hist = hist[["Open", "High", "Low", "Close"]].copy()
+            hist["Close"] = pd.to_numeric(hist["Close"], errors="coerce")
+            hist["High"] = pd.to_numeric(hist["High"], errors="coerce")
+            hist["Low"] = pd.to_numeric(hist["Low"], errors="coerce")
+            hist = hist.dropna(subset=["Close", "High", "Low"])
+
+            if hist.empty:
+                continue
+
+            close_series = hist["Close"].dropna()
+            price = raw(close_series.iloc[-1]) if not close_series.empty else None
+            if price is None:
+                continue
+
+            ma50 = raw(close_series.rolling(50).mean().iloc[-1]) if len(close_series) >= 50 else None
+            ma200 = raw(close_series.rolling(200).mean().iloc[-1]) if len(close_series) >= 200 else None
+
+            rsi_series = compute_rsi(close_series)
+            rsi_value = raw(rsi_series.iloc[-1]) if not rsi_series.empty else None
+            rsi_text = clean(rsi_value)
+            rsi_flag = rsi_status(rsi_value)
+
+            signal, confidence, trend = get_signal(price, ma50, ma200, rsi_value)
+
+            d_high = raw(hist["High"].iloc[-1])
+            d_low = raw(hist["Low"].iloc[-1])
+            w_high = raw(hist["High"].tail(5).max())
+            w_low = raw(hist["Low"].tail(5).min())
+            m_high = raw(hist["High"].tail(22).max())
+            m_low = raw(hist["Low"].tail(22).min())
+
+            annualised_vol = None
+            try:
+                returns = close_series.pct_change().dropna()
+                if not returns.empty:
+                    annualised_vol = float(returns.std() * (252 ** 0.5) * 100)
+            except Exception:
+                pass
+
+            scanner_score = score_signal(signal, confidence, price, m_high, m_low, rsi_value)
+            risk_band = stock_risk_band(annualised_vol, confidence)
+            reason = get_reason(signal, trend, rsi_value, rsi_flag)
+
+            results.append({
+                "name": s["name"],
+                "symbol": s["symbol"],
+                "market": s["market"],
+                "index": s["index"],
+                "exchange": s["exchange"],
+                "currency": s["currency"],
+                "signal": signal,
+                "score": scanner_score,
+                "confidence": confidence,
+                "confidence_label": confidence_label(confidence),
+                "trend": trend,
+                "rsi": rsi_text,
+                "rsi_flag": rsi_flag,
+                "reason": reason,
+                "risk_band": risk_band,
+                "volatility_pct": clean(annualised_vol),
+                "price_display": money(price, s["currency"]),
+                "price_raw": price,
+                "d_high_display": money(d_high, s["currency"]),
+                "d_low_display": money(d_low, s["currency"]),
+                "w_high_display": money(w_high, s["currency"]),
+                "w_low_display": money(w_low, s["currency"]),
+                "m_high_display": money(m_high, s["currency"]),
+                "m_low_display": money(m_low, s["currency"]),
+            })
+        except Exception:
+            continue
+
+    allowed = allowed_risk_bands(selected_risk)
+    results = [x for x in results if x["risk_band"] in allowed]
+
+    signal_order = {"BUY": 3, "HOLD": 2, "SELL": 1}
+    results.sort(key=lambda x: (signal_order.get(x["signal"], 0), x["score"]), reverse=True)
+    return results
+
+
+def fetch_current_price(symbol):
+    try:
+        ticker = yf.Ticker(symbol)
+        hist = ticker.history(period="5d", auto_adjust=False)
+        if hist.empty:
+            return None
+        close_series = pd.to_numeric(hist["Close"], errors="coerce").dropna()
+        if close_series.empty:
+            return None
+        return float(close_series.iloc[-1])
+    except Exception:
+        return None
+
+
+def build_holding_series(symbol, start_date):
+    try:
+        ticker = yf.Ticker(symbol)
+        hist = ticker.history(start=start_date, auto_adjust=False)
+        if hist.empty:
+            return None
+        close_series = pd.to_numeric(hist["Close"], errors="coerce").dropna()
+        if close_series.empty:
+            return None
+        return close_series
+    except Exception:
+        return None
+
+
+def build_portfolio_analytics(portfolio):
+    if not portfolio or not portfolio.get("holdings"):
+        return {
+            "summary": [],
+            "portfolio_labels": [],
+            "portfolio_values": [],
+            "portfolio_return_pct": 0,
+            "individual_charts": []
         }
 
-        * { box-sizing: border-box; }
+    frames = []
+    individual_charts = []
+    summary = []
 
-        body { padding: 20px; }
+    for holding in portfolio["holdings"]:
+        symbol = holding["symbol"]
+        name = holding["name"]
+        currency = holding["currency"]
+        purchase_date = holding["purchase_date"]
+        purchase_price = raw(holding["purchase_price"])
 
-        h1 {
-            margin: 0 0 18px 0;
-            text-align: center;
-            font-size: 34px;
-            font-weight: 800;
-            background: linear-gradient(90deg, #60a5fa, #22c55e);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        close_series = build_holding_series(symbol, purchase_date)
+        if close_series is None or close_series.empty:
+            continue
+
+        if purchase_price is None:
+            purchase_price = raw(close_series.iloc[0])
+
+        current_price = raw(close_series.iloc[-1])
+        if current_price is None or purchase_price is None or purchase_price == 0:
+            continue
+
+        current_return_pct = round(((current_price - purchase_price) / purchase_price) * 100, 2)
+
+        df = close_series.to_frame(name=symbol)
+        frames.append(df)
+
+        labels = [d.strftime("%Y-%m-%d") for d in df.index]
+        values = [round(float(v), 2) for v in df[symbol].tolist()]
+
+        individual_charts.append({
+            "symbol": symbol,
+            "name": name,
+            "labels": labels,
+            "values": values,
+            "purchase_date": purchase_date,
+            "purchase_price_display": money(purchase_price, currency),
+            "current_price_display": money(current_price, currency),
+            "return_pct": current_return_pct,
+        })
+
+        summary.append({
+            "symbol": symbol,
+            "name": name,
+            "purchase_date": purchase_date,
+            "purchase_price_display": money(purchase_price, currency),
+            "current_price_display": money(current_price, currency),
+            "return_pct": current_return_pct,
+        })
+
+    if not frames:
+        return {
+            "summary": [],
+            "portfolio_labels": [],
+            "portfolio_values": [],
+            "portfolio_return_pct": 0,
+            "individual_charts": []
         }
 
-        h2, h3 { margin-top: 0; }
+    portfolio_df = pd.concat(frames, axis=1).sort_index().ffill().dropna(how="all")
+    portfolio_df["Total"] = portfolio_df.sum(axis=1)
 
-        .topbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 18px;
-            flex-wrap: wrap;
-            color: #94a3b8;
-            font-size: 14px;
+    portfolio_labels = [d.strftime("%Y-%m-%d") for d in portfolio_df.index]
+    portfolio_values = [round(float(v), 2) for v in portfolio_df["Total"].tolist()]
+
+    portfolio_return_pct = 0
+    if portfolio_values:
+        start_value = portfolio_values[0]
+        end_value = portfolio_values[-1]
+        if start_value:
+            portfolio_return_pct = round(((end_value - start_value) / start_value) * 100, 2)
+
+    return {
+        "summary": summary,
+        "portfolio_labels": portfolio_labels,
+        "portfolio_values": portfolio_values,
+        "portfolio_return_pct": portfolio_return_pct,
+        "individual_charts": individual_charts
+    }
+
+
+def build_all_portfolios_chart(portfolios):
+    chart_series = []
+    labels_master = []
+
+    for _, portfolio in portfolios.items():
+        pdata = build_portfolio_analytics(portfolio)
+        if not pdata["portfolio_labels"] or not pdata["portfolio_values"]:
+            continue
+
+        chart_series.append({
+            "portfolio_name": portfolio["name"],
+            "labels": pdata["portfolio_labels"],
+            "values": pdata["portfolio_values"]
+        })
+
+        if len(pdata["portfolio_labels"]) > len(labels_master):
+            labels_master = pdata["portfolio_labels"]
+
+    return {
+        "labels": labels_master,
+        "series": chart_series
+    }
+
+
+@app.route("/")
+def home():
+    ensure_session_state()
+    make_default_portfolio()
+
+    active_portfolio = get_active_portfolio()
+    if not active_portfolio:
+        return redirect("/onboarding")
+
+    selected_risk = normalise_risk(active_portfolio.get("risk"))
+    selected_market = normalise_market(active_portfolio.get("market"))
+    selected_index = normalise_index(active_portfolio.get("index"))
+
+    scored = scan_universe(selected_market, selected_index, selected_risk)
+    best = scored[0] if scored else None
+
+    portfolio_data = build_portfolio_analytics(active_portfolio)
+    all_portfolios_chart = build_all_portfolios_chart(get_portfolios())
+    portfolio_symbols = {h["symbol"] for h in active_portfolio.get("holdings", [])}
+
+    return render_template(
+        "index.html",
+        risk=selected_risk,
+        active_portfolio=active_portfolio,
+        portfolios=list(get_portfolios().values()),
+        scored=scored,
+        best=best,
+        portfolio_data=portfolio_data,
+        all_portfolios_chart=all_portfolios_chart,
+        portfolio_symbols=portfolio_symbols,
+        risk_options=RISK_OPTIONS,
+        market_options=MARKET_OPTIONS,
+        index_options=INDEX_OPTIONS,
+        disclaimers=DISCLAIMERS,
+        now=datetime.now().strftime("%H:%M:%S"),
+        max_portfolios=MAX_PORTFOLIOS
+    )
+
+
+@app.route("/onboarding")
+def onboarding():
+    ensure_session_state()
+    selected_risk = get_user_risk()
+    return render_template(
+        "onboarding.html",
+        risk=selected_risk,
+        risk_options=RISK_OPTIONS
+    )
+
+
+@app.route("/set-profile", methods=["POST"])
+def set_profile():
+    risk = normalise_risk(request.form.get("risk", "Balanced"))
+    set_user_risk(risk)
+
+    portfolios = get_portfolios()
+    if not portfolios:
+        pid = str(uuid.uuid4())
+        portfolios[pid] = {
+            "id": pid,
+            "name": f"My {risk} Portfolio",
+            "risk": risk,
+            "market": "All Markets",
+            "index": "All Indices",
+            "holdings": []
         }
+        save_portfolios(portfolios)
+        set_active_portfolio_id(pid)
 
-        .badge {
-            background: #111827;
-            border: 1px solid #334155;
-            border-radius: 999px;
-            padding: 8px 12px;
-        }
+    return redirect("/")
 
-        .card {
-            width: 100%;
-            background: linear-gradient(145deg, #1e293b, #0f172a);
-            border-radius: 14px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.35);
-            border: 1px solid #334155;
-        }
 
-        .hero-line {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            align-items: center;
-            margin-bottom: 14px;
-        }
+@app.route("/portfolio/create", methods=["POST"])
+def create_portfolio():
+    ensure_session_state()
+    portfolios = get_portfolios()
 
-        .hero-price {
-            font-size: 34px;
-            font-weight: 800;
-            color: #f8fafc;
-        }
+    if len(portfolios) >= MAX_PORTFOLIOS:
+        return redirect("/")
 
-        .pill {
-            background: #0f172a;
-            border: 1px solid #334155;
-            border-radius: 999px;
-            padding: 8px 12px;
-            font-size: 14px;
-        }
+    name = (request.form.get("name") or "").strip()
+    if not name:
+        name = f"Portfolio {len(portfolios) + 1}"
 
-        .sub {
-            color: #cbd5e1;
-            margin-bottom: 14px;
-            font-size: 18px;
-        }
+    risk = normalise_risk(request.form.get("risk", get_user_risk()))
+    market = normalise_market(request.form.get("market", "All Markets"))
+    index = normalise_index(request.form.get("index", "All Indices"))
 
-        .grid {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-top: 12px;
-        }
+    pid = str(uuid.uuid4())
+    portfolios[pid] = {
+        "id": pid,
+        "name": name,
+        "risk": risk,
+        "market": market,
+        "index": index,
+        "holdings": []
+    }
+    save_portfolios(portfolios)
+    set_active_portfolio_id(pid)
 
-        @media (min-width: 950px) {
-            .grid {
-                display: grid;
-                grid-template-columns: 1fr 1fr 1fr;
-            }
-        }
+    return redirect("/")
 
-        .box {
-            width: 100%;
-            background: rgba(15, 23, 42, 0.88);
-            border: 1px solid #334155;
-            border-radius: 12px;
-            padding: 14px;
-            line-height: 1.6;
-        }
 
-        .metric { margin-bottom: 8px; }
-        .metric:last-child { margin-bottom: 0; }
+@app.route("/portfolio/select", methods=["POST"])
+def select_portfolio():
+    pid = request.form.get("portfolio_id")
+    set_active_portfolio_id(pid)
+    return redirect("/")
 
-        .label {
-            color: #94a3b8;
-            font-weight: bold;
-        }
 
-        .controls {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            align-items: center;
-            margin: 12px 0 8px 0;
-        }
+@app.route("/portfolio/update", methods=["POST"])
+def update_portfolio():
+    pid = request.form.get("portfolio_id")
+    portfolios = get_portfolios()
+    if pid not in portfolios:
+        return redirect("/")
 
-        .tool-select, .tool-btn {
-            background: #0f172a;
-            color: #e5e7eb;
-            border: 1px solid #334155;
-            border-radius: 10px;
-            padding: 10px 12px;
-            font-size: 14px;
-        }
+    portfolios[pid]["name"] = (request.form.get("name") or portfolios[pid]["name"]).strip() or portfolios[pid]["name"]
+    portfolios[pid]["risk"] = normalise_risk(request.form.get("risk", portfolios[pid]["risk"]))
+    portfolios[pid]["market"] = normalise_market(request.form.get("market", portfolios[pid]["market"]))
+    portfolios[pid]["index"] = normalise_index(request.form.get("index", portfolios[pid]["index"]))
 
-        .tool-btn {
-            cursor: pointer;
-        }
+    save_portfolios(portfolios)
+    set_active_portfolio_id(pid)
+    return redirect("/")
 
-        .tool-btn:hover {
-            border-color: #3b82f6;
-        }
 
-        .tool-btn.remove {
-            border-color: #7f1d1d;
-        }
+@app.route("/portfolio/delete", methods=["POST"])
+def delete_portfolio():
+    pid = request.form.get("portfolio_id")
+    portfolios = get_portfolios()
 
-        .table-wrapper {
-            width: 100%;
-            overflow-x: auto;
-            margin-top: 10px;
-            border-radius: 12px;
-        }
+    if pid in portfolios:
+        del portfolios[pid]
+        save_portfolios(portfolios)
 
-        table {
-            width: 100%;
-            min-width: 1600px;
-            border-collapse: collapse;
-        }
+    if not portfolios:
+        session["active_portfolio_id"] = None
+        make_default_portfolio()
+    else:
+        current_id = get_active_portfolio_id()
+        if current_id not in portfolios:
+            first_id = next(iter(portfolios.keys()))
+            set_active_portfolio_id(first_id)
 
-        th, td {
-            padding: 11px 10px;
-            text-align: left;
-            vertical-align: top;
-            white-space: nowrap;
-        }
+    return redirect("/")
 
-        th {
-            background: #334155;
-        }
 
-        tbody tr:nth-child(even) {
-            background: #0f172a;
-        }
+@app.route("/portfolio/add", methods=["POST"])
+def add_to_portfolio():
+    active_portfolio = get_active_portfolio()
+    if not active_portfolio:
+        return redirect("/")
 
-        tbody tr:hover {
-            background: #132036;
-        }
+    symbol = request.form.get("symbol")
+    meta = find_meta(symbol)
+    if not meta:
+        return redirect("/")
 
-        .highlight {
-            background: #1d4ed8 !important;
-        }
+    holdings = active_portfolio.get("holdings", [])
+    if symbol in [h["symbol"] for h in holdings]:
+        return redirect("/")
 
-        .buy { color: #22c55e; font-weight: bold; }
-        .sell { color: #ef4444; font-weight: bold; }
-        .hold { color: #eab308; font-weight: bold; }
+    purchase_price = fetch_current_price(symbol)
+    holdings.append({
+        "symbol": symbol,
+        "name": meta["name"],
+        "currency": meta["currency"],
+        "purchase_date": datetime.now().strftime("%Y-%m-%d"),
+        "purchase_price": purchase_price
+    })
 
-        .high { color: #22c55e; font-weight: bold; }
-        .medium { color: #facc15; font-weight: bold; }
-        .low { color: #f87171; font-weight: bold; }
+    portfolios = get_portfolios()
+    portfolios[active_portfolio["id"]]["holdings"] = holdings
+    save_portfolios(portfolios)
 
-        .risk-low { color: #22c55e; font-weight: bold; }
-        .risk-medium { color: #facc15; font-weight: bold; }
-        .risk-high { color: #ef4444; font-weight: bold; }
+    return redirect("/")
 
-        .muted { color: #94a3b8; }
 
-        a { color: #60a5fa; }
+@app.route("/portfolio/remove", methods=["POST"])
+def remove_from_portfolio():
+    active_portfolio = get_active_portfolio()
+    if not active_portfolio:
+        return redirect("/")
 
-        .warning {
-            background: #111827;
-            border: 1px solid #334155;
-            border-radius: 10px;
-            padding: 12px;
-            margin-top: 10px;
-            color: #cbd5e1;
-        }
+    symbol = request.form.get("symbol")
+    holdings = [h for h in active_portfolio.get("holdings", []) if h["symbol"] != symbol]
 
-        .chart-wrap {
-            background: rgba(15, 23, 42, 0.88);
-            border: 1px solid #334155;
-            border-radius: 12px;
-            padding: 12px;
-            margin-top: 12px;
-        }
+    portfolios = get_portfolios()
+    portfolios[active_portfolio["id"]]["holdings"] = holdings
+    save_portfolios(portfolios)
 
-        .mini-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 12px;
-        }
+    return redirect("/")
 
-        @media (min-width: 950px) {
-            .mini-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-        }
 
-        .small-table {
-            min-width: 100%;
-        }
-    </style>
-</head>
-<body>
-
-    <h1>CycleX AI</h1>
-
-    <div class="topbar">
-        <div class="badge">AI Risk-Adaptive Market Intelligence Platform</div>
-        <div class="badge">Selected Risk: {{ risk }}</div>
-        <div class="badge">Last updated: {{ now }}</div>
-        <div class="badge">Signals shown: {{ scored|length }}</div>
-    </div>
-
-    <div class="card">
-        <div class="controls">
-            <a class="tool-btn" href="/onboarding?risk={{ risk }}">Change Risk Profile</a>
-        </div>
-
-        <form method="get" action="/" class="controls">
-            <select class="tool-select" name="risk">
-                {% for item in risk_options %}
-                    <option value="{{ item }}" {% if item == risk %}selected{% endif %}>{{ item }}</option>
-                {% endfor %}
-            </select>
-
-            <select class="tool-select" name="market">
-                {% for item in market_options %}
-                    <option value="{{ item }}" {% if item == selected_market %}selected{% endif %}>{{ item }}</option>
-                {% endfor %}
-            </select>
-
-            <select class="tool-select" name="index">
-                {% for item in index_options %}
-                    <option value="{{ item }}" {% if item == selected_index %}selected{% endif %}>{{ item }}</option>
-                {% endfor %}
-            </select>
-
-            <button class="tool-btn" type="submit">Apply Scanner</button>
-        </form>
-
-        {% for item in disclaimers %}
-            <div class="warning">{{ item }}</div>
-        {% endfor %}
-    </div>
-
-    {% if best %}
-    <div class="card">
-        <h2>Top Ranked Opportunity</h2>
-
-        <h3>{{ best.name }} ({{ best.symbol }})</h3>
-        <div class="sub">{{ best.exchange }} | {{ best.market }} | {{ best.index }} | {{ best.currency }}</div>
-
-        <div class="hero-line">
-            <div class="hero-price">{{ best.price_display }}</div>
-            <div class="pill">Signal: <span class="{{ best.signal|lower }}">{{ best.signal }}</span></div>
-            <div class="pill">Risk Band:
-                <span class="{% if best.risk_band == 'Low' %}risk-low{% elif best.risk_band == 'Medium' %}risk-medium{% else %}risk-high{% endif %}">
-                    {{ best.risk_band }}
-                </span>
-            </div>
-            <div class="pill">Score: {{ best.score }}</div>
-        </div>
-
-        <div class="grid">
-            <div class="box">
-                <div class="metric"><span class="label">Signal:</span> <span class="{{ best.signal|lower }}">{{ best.signal }}</span></div>
-                <div class="metric"><span class="label">Confidence:</span>
-                    <span class="{% if best.confidence_label == 'High' %}high{% elif best.confidence_label == 'Medium' %}medium{% else %}low{% endif %}">
-                        {{ best.confidence_label }}
-                    </span>
-                    ({{ best.confidence }})
-                </div>
-                <div class="metric"><span class="label">Trend:</span> {{ best.trend }}</div>
-                <div class="metric"><span class="label">Risk Band:</span>
-                    <span class="{% if best.risk_band == 'Low' %}risk-low{% elif best.risk_band == 'Medium' %}risk-medium{% else %}risk-high{% endif %}">
-                        {{ best.risk_band }}
-                    </span>
-                </div>
-            </div>
-
-            <div class="box">
-                <div class="metric"><span class="label">RSI:</span> {{ best.rsi }} ({{ best.rsi_flag }})</div>
-                <div class="metric"><span class="label">Reason:</span> {{ best.reason }}</div>
-                <div class="metric"><span class="label">Volatility:</span> {{ best.volatility_pct }}%</div>
-            </div>
-
-            <div class="box">
-                <div class="metric"><span class="label">Day:</span> {{ best.d_high_display }} / {{ best.d_low_display }}</div>
-                <div class="metric"><span class="label">Week:</span> {{ best.w_high_display }} / {{ best.w_low_display }}</div>
-                <div class="metric"><span class="label">Month:</span> {{ best.m_high_display }} / {{ best.m_low_display }}</div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
-    <div class="card">
-        <h2>{{ risk }} Portfolio</h2>
-
-        {% if portfolio_data.summary|length > 0 %}
-            <div class="grid">
-                <div class="box">
-                    <div class="metric"><span class="label">Holdings:</span> {{ portfolio_data.summary|length }}</div>
-                    <div class="metric"><span class="label">Portfolio return:</span> {{ portfolio_data.portfolio_return_pct }}%</div>
-                </div>
-
-                <div class="box">
-                    <div class="metric"><span class="label">Portfolio type:</span> Self-directed holdings for {{ risk }}</div>
-                    <div class="metric"><span class="label">Tracking:</span> Purchase date, stock chart, portfolio chart</div>
-                </div>
-
-                <div class="box">
-                    <div class="metric"><span class="label">Use:</span> Click Add in the scanner to add a stock to this risk-category portfolio.</div>
-                </div>
-            </div>
-
-            <div class="chart-wrap">
-                <h3>Portfolio Performance Over Time</h3>
-                <canvas id="portfolioChart" height="110"></canvas>
-            </div>
-
-            <div class="card" style="padding:0; margin-top:16px; background:none; border:none; box-shadow:none;">
-                <div class="table-wrapper">
-                    <table class="small-table">
-                        <thead>
-                            <tr>
-                                <th>Company</th>
-                                <th>Ticker</th>
-                                <th>Purchased</th>
-                                <th>Purchase Price</th>
-                                <th>Current Price</th>
-                                <th>Return</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in portfolio_data.summary %}
-                            <tr>
-                                <td>{{ item.name }}</td>
-                                <td>{{ item.symbol }}</td>
-                                <td>{{ item.purchase_date }}</td>
-                                <td>{{ item.purchase_price_display }}</td>
-                                <td>{{ item.current_price_display }}</td>
-                                <td class="{% if item.return_pct >= 0 %}buy{% else %}sell{% endif %}">{{ item.return_pct }}%</td>
-                                <td>
-                                    <form method="post" action="/portfolio/remove">
-                                        <input type="hidden" name="symbol" value="{{ item.symbol }}">
-                                        <input type="hidden" name="risk" value="{{ risk }}">
-                                        <input type="hidden" name="market" value="{{ selected_market }}">
-                                        <input type="hidden" name="index" value="{{ selected_index }}">
-                                        <button class="tool-btn remove" type="submit">Remove</button>
-                                    </form>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="mini-grid">
-                {% for item in portfolio_data.individual_charts %}
-                <div class="chart-wrap">
-                    <h3>{{ item.name }} ({{ item.symbol }})</h3>
-                    <div class="metric"><span class="label">Purchased:</span> {{ item.purchase_date }}</div>
-                    <div class="metric"><span class="label">Purchase Price:</span> {{ item.purchase_price_display }}</div>
-                    <div class="metric"><span class="label">Current Price:</span> {{ item.current_price_display }}</div>
-                    <div class="metric"><span class="label">Return:</span>
-                        <span class="{% if item.return_pct >= 0 %}buy{% else %}sell{% endif %}">{{ item.return_pct }}%</span>
-                    </div>
-                    <canvas id="chart_{{ item.symbol|replace('.', '_') }}" height="120"></canvas>
-                </div>
-                {% endfor %}
-            </div>
-
-        {% else %}
-            <div class="warning">No holdings yet in the {{ risk }} portfolio. Add stocks from the scanner below.</div>
-        {% endif %}
-    </div>
-
-    <div class="card">
-        <h2>Ranked Scanner Results</h2>
-
-        <div class="table-wrapper">
-            <table>
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Company</th>
-                        <th>Ticker</th>
-                        <th>Market</th>
-                        <th>Index</th>
-                        <th>Exchange</th>
-                        <th>Currency</th>
-                        <th>Signal</th>
-                        <th>Risk Band</th>
-                        <th>Score</th>
-                        <th>Confidence</th>
-                        <th>Trend</th>
-                        <th>RSI</th>
-                        <th>Reason</th>
-                        <th>Price</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for stock in scored %}
-                    <tr {% if loop.index == 1 %}class="highlight"{% endif %}>
-                        <td>{{ loop.index }}</td>
-                        <td>{{ stock.name }}</td>
-                        <td>{{ stock.symbol }}</td>
-                        <td>{{ stock.market }}</td>
-                        <td>{{ stock.index }}</td>
-                        <td>{{ stock.exchange }}</td>
-                        <td>{{ stock.currency }}</td>
-                        <td class="{{ stock.signal|lower }}">{{ stock.signal }}</td>
-                        <td>
-                            <span class="{% if stock.risk_band == 'Low' %}risk-low{% elif stock.risk_band == 'Medium' %}risk-medium{% else %}risk-high{% endif %}">
-                                {{ stock.risk_band }}
-                            </span>
-                        </td>
-                        <td>{{ stock.score }}</td>
-                        <td>
-                            <span class="{% if stock.confidence_label == 'High' %}high{% elif stock.confidence_label == 'Medium' %}medium{% else %}low{% endif %}">
-                                {{ stock.confidence_label }}
-                            </span>
-                            ({{ stock.confidence }})
-                        </td>
-                        <td>{{ stock.trend }}</td>
-                        <td>{{ stock.rsi }} / {{ stock.rsi_flag }}</td>
-                        <td>{{ stock.reason }}</td>
-                        <td>{{ stock.price_display }}</td>
-                        <td>
-                            {% if stock.symbol in portfolio_symbols %}
-                                <form method="post" action="/portfolio/remove">
-                                    <input type="hidden" name="symbol" value="{{ stock.symbol }}">
-                                    <input type="hidden" name="risk" value="{{ risk }}">
-                                    <input type="hidden" name="market" value="{{ selected_market }}">
-                                    <input type="hidden" name="index" value="{{ selected_index }}">
-                                    <button class="tool-btn remove" type="submit">Remove</button>
-                                </form>
-                            {% else %}
-                                <form method="post" action="/portfolio/add">
-                                    <input type="hidden" name="symbol" value="{{ stock.symbol }}">
-                                    <input type="hidden" name="risk" value="{{ risk }}">
-                                    <input type="hidden" name="market" value="{{ selected_market }}">
-                                    <input type="hidden" name="index" value="{{ selected_index }}">
-                                    <button class="tool-btn" type="submit">Add</button>
-                                </form>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        {% if scored|length == 0 %}
-            <div class="warning">No results matched the current market, index, and risk filters.</div>
-        {% endif %}
-    </div>
-
-    {% if portfolio_data.summary|length > 0 %}
-    <script>
-        const portfolioLabels = {{ portfolio_data.portfolio_labels|tojson }};
-        const portfolioValues = {{ portfolio_data.portfolio_values|tojson }};
-
-        new Chart(document.getElementById('portfolioChart'), {
-            type: 'line',
-            data: {
-                labels: portfolioLabels,
-                datasets: [{
-                    label: 'Portfolio Value',
-                    data: portfolioValues,
-                    borderWidth: 2,
-                    tension: 0.2
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        labels: { color: '#e5e7eb' }
-                    }
-                },
-                scales: {
-                    x: {
-                        ticks: { color: '#94a3b8' },
-                        grid: { color: '#1f2937' }
-                    },
-                    y: {
-                        ticks: { color: '#94a3b8' },
-                        grid: { color: '#1f2937' }
-                    }
-                }
-            }
-        });
-
-        {% for item in portfolio_data.individual_charts %}
-        new Chart(document.getElementById('chart_{{ item.symbol|replace(".", "_") }}'), {
-            type: 'line',
-            data: {
-                labels: {{ item.labels|tojson }},
-                datasets: [{
-                    label: '{{ item.symbol }}',
-                    data: {{ item.values|tojson }},
-                    borderWidth: 2,
-                    tension: 0.2
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        labels: { color: '#e5e7eb' }
-                    }
-                },
-                scales: {
-                    x: {
-                        ticks: { color: '#94a3b8' },
-                        grid: { color: '#1f2937' }
-                    },
-                    y: {
-                        ticks: { color: '#94a3b8' },
-                        grid: { color: '#1f2937' }
-                    }
-                }
-            }
-        });
-        {% endfor %}
-    </script>
-    {% endif %}
-
-</body>
-</html>
+if __name__ == "__main__":
+    app.run(debug=True)
