@@ -1,16 +1,20 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Investment Risk Profile</title>
+    <title>CycleX AI - Risk Profile</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <style>
-        body {
+        html, body {
+            margin: 0;
+            padding: 0;
             background: #0b0f1a;
             color: white;
             font-family: Arial, sans-serif;
-            text-align: center;
+        }
+
+        body {
             padding: 40px;
+            text-align: center;
         }
 
         .card {
@@ -18,8 +22,20 @@
             border: 1px solid #334155;
             border-radius: 12px;
             padding: 30px;
-            max-width: 400px;
+            max-width: 520px;
             margin: auto;
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 30px;
+            background: linear-gradient(90deg, #60a5fa, #22c55e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p {
+            color: #cbd5e1;
         }
 
         select, button {
@@ -31,6 +47,12 @@
             border: none;
         }
 
+        select {
+            background: #0f172a;
+            color: white;
+            border: 1px solid #334155;
+        }
+
         button {
             background: #3b82f6;
             color: white;
@@ -40,29 +62,48 @@
         button:hover {
             background: #2563eb;
         }
+
+        .small {
+            font-size: 13px;
+            color: #94a3b8;
+            margin-top: 12px;
+        }
     </style>
 </head>
-
 <body>
 
     <div class="card">
-        <h1>📊 Investment Risk Profile</h1>
+        <h1>CycleX AI</h1>
 
-        <p>Select your risk level:</p>
+        <p>Risk-Adaptive Market Intelligence Platform</p>
+        <p>Select your risk level and initial scanner scope.</p>
 
         <form action="/" method="GET">
 
             <select name="risk">
-                <option value="defensive">Defensive</option>
-                <option value="cautious">Cautious</option>
-                <option value="balanced">Balanced</option>
-                <option value="growth">Growth</option>
-                <option value="aggressive">Aggressive</option>
+                {% for item in risk_options %}
+                    <option value="{{ item }}" {% if item == risk %}selected{% endif %}>{{ item }}</option>
+                {% endfor %}
             </select>
 
-            <button type="submit">Continue</button>
+            <select name="market">
+                {% for item in market_options %}
+                    <option value="{{ item }}">{{ item }}</option>
+                {% endfor %}
+            </select>
 
+            <select name="index">
+                {% for item in index_options %}
+                    <option value="{{ item }}">{{ item }}</option>
+                {% endfor %}
+            </select>
+
+            <button type="submit">Continue to CycleX Scanner</button>
         </form>
+
+        <div class="small">
+            This is not financial advice. CycleX AI provides market intelligence only.
+        </div>
     </div>
 
 </body>
