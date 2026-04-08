@@ -3,6 +3,7 @@
 <head>
     <title>CycleX AI</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         html, body {
             margin: 0;
@@ -13,13 +14,9 @@
             font-family: Arial, sans-serif;
         }
 
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
 
-        body {
-            padding: 20px;
-        }
+        body { padding: 20px; }
 
         h1 {
             margin: 0 0 18px 0;
@@ -31,9 +28,7 @@
             -webkit-text-fill-color: transparent;
         }
 
-        h2, h3 {
-            margin-top: 0;
-        }
+        h2, h3 { margin-top: 0; }
 
         .topbar {
             display: flex;
@@ -114,13 +109,8 @@
             line-height: 1.6;
         }
 
-        .metric {
-            margin-bottom: 8px;
-        }
-
-        .metric:last-child {
-            margin-bottom: 0;
-        }
+        .metric { margin-bottom: 8px; }
+        .metric:last-child { margin-bottom: 0; }
 
         .label {
             color: #94a3b8;
@@ -152,6 +142,10 @@
             border-color: #3b82f6;
         }
 
+        .tool-btn.remove {
+            border-color: #7f1d1d;
+        }
+
         .table-wrapper {
             width: 100%;
             overflow-x: auto;
@@ -161,7 +155,7 @@
 
         table {
             width: 100%;
-            min-width: 1450px;
+            min-width: 1600px;
             border-collapse: collapse;
         }
 
@@ -200,13 +194,9 @@
         .risk-medium { color: #facc15; font-weight: bold; }
         .risk-high { color: #ef4444; font-weight: bold; }
 
-        .muted {
-            color: #94a3b8;
-        }
+        .muted { color: #94a3b8; }
 
-        a {
-            color: #60a5fa;
-        }
+        a { color: #60a5fa; }
 
         .warning {
             background: #111827;
@@ -216,6 +206,30 @@
             margin-top: 10px;
             color: #cbd5e1;
         }
+
+        .chart-wrap {
+            background: rgba(15, 23, 42, 0.88);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 12px;
+            margin-top: 12px;
+        }
+
+        .mini-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        @media (min-width: 950px) {
+            .mini-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .small-table {
+            min-width: 100%;
+        }
     </style>
 </head>
 <body>
@@ -223,7 +237,7 @@
     <h1>CycleX AI</h1>
 
     <div class="topbar">
-        <div class="badge">Risk-Adaptive Market Intelligence Platform</div>
+        <div class="badge">AI Risk-Adaptive Market Intelligence Platform</div>
         <div class="badge">Selected Risk: {{ risk }}</div>
         <div class="badge">Last updated: {{ now }}</div>
         <div class="badge">Signals shown: {{ scored|length }}</div>
@@ -312,6 +326,90 @@
     {% endif %}
 
     <div class="card">
+        <h2>{{ risk }} Portfolio</h2>
+
+        {% if portfolio_data.summary|length > 0 %}
+            <div class="grid">
+                <div class="box">
+                    <div class="metric"><span class="label">Holdings:</span> {{ portfolio_data.summary|length }}</div>
+                    <div class="metric"><span class="label">Portfolio return:</span> {{ portfolio_data.portfolio_return_pct }}%</div>
+                </div>
+
+                <div class="box">
+                    <div class="metric"><span class="label">Portfolio type:</span> Self-directed holdings for {{ risk }}</div>
+                    <div class="metric"><span class="label">Tracking:</span> Purchase date, stock chart, portfolio chart</div>
+                </div>
+
+                <div class="box">
+                    <div class="metric"><span class="label">Use:</span> Click Add in the scanner to add a stock to this risk-category portfolio.</div>
+                </div>
+            </div>
+
+            <div class="chart-wrap">
+                <h3>Portfolio Performance Over Time</h3>
+                <canvas id="portfolioChart" height="110"></canvas>
+            </div>
+
+            <div class="card" style="padding:0; margin-top:16px; background:none; border:none; box-shadow:none;">
+                <div class="table-wrapper">
+                    <table class="small-table">
+                        <thead>
+                            <tr>
+                                <th>Company</th>
+                                <th>Ticker</th>
+                                <th>Purchased</th>
+                                <th>Purchase Price</th>
+                                <th>Current Price</th>
+                                <th>Return</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in portfolio_data.summary %}
+                            <tr>
+                                <td>{{ item.name }}</td>
+                                <td>{{ item.symbol }}</td>
+                                <td>{{ item.purchase_date }}</td>
+                                <td>{{ item.purchase_price_display }}</td>
+                                <td>{{ item.current_price_display }}</td>
+                                <td class="{% if item.return_pct >= 0 %}buy{% else %}sell{% endif %}">{{ item.return_pct }}%</td>
+                                <td>
+                                    <form method="post" action="/portfolio/remove">
+                                        <input type="hidden" name="symbol" value="{{ item.symbol }}">
+                                        <input type="hidden" name="risk" value="{{ risk }}">
+                                        <input type="hidden" name="market" value="{{ selected_market }}">
+                                        <input type="hidden" name="index" value="{{ selected_index }}">
+                                        <button class="tool-btn remove" type="submit">Remove</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="mini-grid">
+                {% for item in portfolio_data.individual_charts %}
+                <div class="chart-wrap">
+                    <h3>{{ item.name }} ({{ item.symbol }})</h3>
+                    <div class="metric"><span class="label">Purchased:</span> {{ item.purchase_date }}</div>
+                    <div class="metric"><span class="label">Purchase Price:</span> {{ item.purchase_price_display }}</div>
+                    <div class="metric"><span class="label">Current Price:</span> {{ item.current_price_display }}</div>
+                    <div class="metric"><span class="label">Return:</span>
+                        <span class="{% if item.return_pct >= 0 %}buy{% else %}sell{% endif %}">{{ item.return_pct }}%</span>
+                    </div>
+                    <canvas id="chart_{{ item.symbol|replace('.', '_') }}" height="120"></canvas>
+                </div>
+                {% endfor %}
+            </div>
+
+        {% else %}
+            <div class="warning">No holdings yet in the {{ risk }} portfolio. Add stocks from the scanner below.</div>
+        {% endif %}
+    </div>
+
+    <div class="card">
         <h2>Ranked Scanner Results</h2>
 
         <div class="table-wrapper">
@@ -333,9 +431,7 @@
                         <th>RSI</th>
                         <th>Reason</th>
                         <th>Price</th>
-                        <th>Day</th>
-                        <th>Week</th>
-                        <th>Month</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -365,9 +461,25 @@
                         <td>{{ stock.rsi }} / {{ stock.rsi_flag }}</td>
                         <td>{{ stock.reason }}</td>
                         <td>{{ stock.price_display }}</td>
-                        <td>{{ stock.d_high_display }} / {{ stock.d_low_display }}</td>
-                        <td>{{ stock.w_high_display }} / {{ stock.w_low_display }}</td>
-                        <td>{{ stock.m_high_display }} / {{ stock.m_low_display }}</td>
+                        <td>
+                            {% if stock.symbol in portfolio_symbols %}
+                                <form method="post" action="/portfolio/remove">
+                                    <input type="hidden" name="symbol" value="{{ stock.symbol }}">
+                                    <input type="hidden" name="risk" value="{{ risk }}">
+                                    <input type="hidden" name="market" value="{{ selected_market }}">
+                                    <input type="hidden" name="index" value="{{ selected_index }}">
+                                    <button class="tool-btn remove" type="submit">Remove</button>
+                                </form>
+                            {% else %}
+                                <form method="post" action="/portfolio/add">
+                                    <input type="hidden" name="symbol" value="{{ stock.symbol }}">
+                                    <input type="hidden" name="risk" value="{{ risk }}">
+                                    <input type="hidden" name="market" value="{{ selected_market }}">
+                                    <input type="hidden" name="index" value="{{ selected_index }}">
+                                    <button class="tool-btn" type="submit">Add</button>
+                                </form>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -378,6 +490,77 @@
             <div class="warning">No results matched the current market, index, and risk filters.</div>
         {% endif %}
     </div>
+
+    {% if portfolio_data.summary|length > 0 %}
+    <script>
+        const portfolioLabels = {{ portfolio_data.portfolio_labels|tojson }};
+        const portfolioValues = {{ portfolio_data.portfolio_values|tojson }};
+
+        new Chart(document.getElementById('portfolioChart'), {
+            type: 'line',
+            data: {
+                labels: portfolioLabels,
+                datasets: [{
+                    label: 'Portfolio Value',
+                    data: portfolioValues,
+                    borderWidth: 2,
+                    tension: 0.2
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        labels: { color: '#e5e7eb' }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: '#94a3b8' },
+                        grid: { color: '#1f2937' }
+                    },
+                    y: {
+                        ticks: { color: '#94a3b8' },
+                        grid: { color: '#1f2937' }
+                    }
+                }
+            }
+        });
+
+        {% for item in portfolio_data.individual_charts %}
+        new Chart(document.getElementById('chart_{{ item.symbol|replace(".", "_") }}'), {
+            type: 'line',
+            data: {
+                labels: {{ item.labels|tojson }},
+                datasets: [{
+                    label: '{{ item.symbol }}',
+                    data: {{ item.values|tojson }},
+                    borderWidth: 2,
+                    tension: 0.2
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        labels: { color: '#e5e7eb' }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: '#94a3b8' },
+                        grid: { color: '#1f2937' }
+                    },
+                    y: {
+                        ticks: { color: '#94a3b8' },
+                        grid: { color: '#1f2937' }
+                    }
+                }
+            }
+        });
+        {% endfor %}
+    </script>
+    {% endif %}
 
 </body>
 </html>
