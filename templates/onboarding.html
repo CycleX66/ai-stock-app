@@ -1,86 +1,55 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>CycleX AI - Risk Profile</title>
+    <title>CycleX AI</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        html, body {
+        body {
             margin: 0;
-            padding: 0;
+            font-family: Arial, sans-serif;
             background: #0b0f1a;
             color: white;
-            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
         }
-        body {
-            padding: 40px 20px;
-            text-align: center;
-        }
+
         .card {
             background: #111827;
-            border: 1px solid #334155;
-            border-radius: 16px;
-            padding: 32px;
-            max-width: 780px;
-            margin: auto;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+            border: 1px solid #2c3b5c;
+            border-radius: 14px;
+            padding: 30px;
+            text-align: center;
+            max-width: 720px;
+            width: 100%;
         }
+
         .logo {
-            width: 100%;
-            max-width: 640px;
+            max-width: 100%;
             height: auto;
-            display: block;
-            margin: 0 auto 24px auto;
-            border-radius: 12px;
-        }
-        h1 {
-            margin: 0 0 8px 0;
-            font-size: 30px;
-            background: linear-gradient(90deg, #60a5fa, #22c55e);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        p {
-            color: #cbd5e1;
-            margin-bottom: 18px;
-        }
-        select, button {
-            padding: 14px;
-            font-size: 16px;
-            margin-top: 14px;
-            width: 100%;
+            max-height: 140px;
             border-radius: 10px;
-            border: none;
+            margin-bottom: 20px;
         }
-        select {
-            background: #0f172a;
-            color: white;
-            border: 1px solid #334155;
+
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 34px;
         }
-        button {
-            background: #2563eb;
-            color: white;
-            cursor: pointer;
-        }
-        button:hover {
-            background: #1d4ed8;
+
+        p {
+            color: #93c5fd;
+            margin-bottom: 0;
         }
     </style>
 </head>
 <body>
     <div class="card">
-        <img src="{{ url_for('static', filename='cyclex-logo.jpeg') }}" alt="CycleX AI Logo" class="logo">
-
+        <img src="{{ url_for('static', filename='cyclex-logo.jpg') }}" class="logo" alt="CycleX AI Logo">
         <h1>CycleX AI</h1>
-        <p>AI Risk-Adaptive Market Intelligence Platform</p>
-
-        <form action="/set-profile" method="post">
-            <select name="risk">
-                {% for item in risk_options %}
-                    <option value="{{ item }}" {% if item == risk %}selected{% endif %}>{{ item }}</option>
-                {% endfor %}
-            </select>
-            <button type="submit">Continue to CycleX</button>
-        </form>
+        <p>AI Risk-Adaptive Market Intelligence</p>
     </div>
 </body>
 </html>
