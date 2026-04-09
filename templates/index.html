@@ -2,11 +2,11 @@
 <html>
 <head>
     <title>CycleX AI</title>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body {
             margin: 0;
-            font-family: Arial;
+            font-family: Arial, sans-serif;
             background: #0b0f1a;
             color: white;
         }
@@ -14,126 +14,205 @@
         .header {
             display: flex;
             align-items: center;
-            gap: 20px;
-            padding: 20px;
+            gap: 18px;
+            padding: 20px 24px;
             border-bottom: 1px solid #1f2a44;
+            background: #0d1320;
         }
 
         .logo {
-            height: 60px;
+            height: 64px;
+            width: auto;
+            border-radius: 8px;
         }
 
         .title {
-            font-size: 26px;
-            font-weight: bold;
+            font-size: 34px;
+            font-weight: 800;
+            margin: 0;
         }
 
         .subtitle {
-            font-size: 14px;
+            font-size: 16px;
             color: #7aa2ff;
+            margin-top: 4px;
+        }
+
+        .nav {
+            display: flex;
+            gap: 12px;
+            padding: 16px 24px 0 24px;
+        }
+
+        .nav a {
+            color: white;
+            text-decoration: none;
+            padding: 10px 14px;
+            border: 1px solid #2c3b5c;
+            background: #111827;
+            border-radius: 8px;
+        }
+
+        .nav a.active {
+            background: #1d4ed8;
         }
 
         .container {
-            padding: 20px;
+            padding: 20px 24px 30px 24px;
         }
 
-        .filters {
+        .warning {
+            background: #111827;
+            border: 1px solid #2c3b5c;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+            color: #cbd5e1;
+        }
+
+        .card {
+            background: #111827;
+            border: 1px solid #2c3b5c;
+            border-radius: 12px;
+            padding: 18px;
             margin-bottom: 20px;
         }
 
-        select {
-            padding: 8px;
-            margin-right: 10px;
-            background: #111827;
+        .filters {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        select, button {
+            padding: 10px 12px;
+            background: #0f172a;
             color: white;
             border: 1px solid #2c3b5c;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        button {
+            cursor: pointer;
+            background: #1d4ed8;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
+            min-width: 760px;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
         }
 
         th, td {
-            padding: 10px;
+            padding: 12px 10px;
             border-bottom: 1px solid #1f2a44;
+            text-align: left;
         }
 
-        .buy { color: #00ff9c; }
-        .sell { color: #ff4d4d; }
-        .hold { color: #ffc107; }
+        th {
+            color: #cbd5e1;
+            background: #101827;
+        }
+
+        tr:nth-child(even) {
+            background: #0e1523;
+        }
+
+        .buy { color: #22c55e; font-weight: bold; }
+        .sell { color: #ef4444; font-weight: bold; }
+        .hold { color: #facc15; font-weight: bold; }
 
         .portfolio {
-            margin-top: 30px;
+            margin-top: 10px;
             padding: 20px;
-            background: #111827;
+            background: #131c2d;
             border-radius: 10px;
+        }
+
+        .portfolio h2 {
+            margin-top: 0;
         }
     </style>
 </head>
 
 <body>
 
-<!-- HEADER WITH LOGO -->
 <div class="header">
-    <img src="/static/cyclex-logo.jpg" class="logo">
+    <img src="{{ url_for('static', filename='cyclex-logo.jpg') }}" class="logo" alt="CycleX AI Logo">
     <div>
         <div class="title">CycleX AI</div>
         <div class="subtitle">AI Risk-Adaptive Market Intelligence</div>
     </div>
 </div>
 
+<div class="nav">
+    <a href="/?view=opportunities" class="{% if view == 'opportunities' %}active{% endif %}">Opportunities</a>
+    <a href="/?view=dashboard" class="{% if view == 'dashboard' %}active{% endif %}">Dashboard</a>
+</div>
+
 <div class="container">
 
-    <!-- FILTERS -->
-    <div class="filters">
-        <select>
-            <option>All Risk Levels</option>
-            <option>Low</option>
-            <option>Medium</option>
-            <option>High</option>
-        </select>
+    {% for item in disclaimers %}
+    <div class="warning">{{ item }}</div>
+    {% endfor %}
 
-        <select>
-            <option>All Markets</option>
-            <option>US</option>
-            <option>UK</option>
-            <option>Europe</option>
-            <option>Asia</option>
-        </select>
+    <div class="card">
+        <form method="get" action="/" class="filters">
+            <input type="hidden" name="view" value="opportunities">
+
+            <select name="risk">
+                <option {% if risk == 'All Risk Levels' %}selected{% endif %}>All Risk Levels</option>
+                <option {% if risk == 'Low' %}selected{% endif %}>Low</option>
+                <option {% if risk == 'Medium' %}selected{% endif %}>Medium</option>
+                <option {% if risk == 'High' %}selected{% endif %}>High</option>
+            </select>
+
+            <select name="market">
+                <option {% if market == 'All Markets' %}selected{% endif %}>All Markets</option>
+                <option {% if market == 'US' %}selected{% endif %}>US</option>
+                <option {% if market == 'UK' %}selected{% endif %}>UK</option>
+                <option {% if market == 'Hong Kong' %}selected{% endif %}>Hong Kong</option>
+                <option {% if market == 'India' %}selected{% endif %}>India</option>
+            </select>
+
+            <button type="submit">Apply Filters</button>
+        </form>
     </div>
 
-    <!-- SCANNER TABLE -->
-    <table>
-        <tr>
-            <th>Company</th>
-            <th>Signal</th>
-            <th>Score</th>
-            <th>Action</th>
-        </tr>
+    <div class="card">
+        <div class="table-wrap">
+            <table>
+                <tr>
+                    <th>Company</th>
+                    <th>Ticker</th>
+                    <th>Market</th>
+                    <th>Signal</th>
+                    <th>Score</th>
+                    <th>Action</th>
+                </tr>
 
-        {% for stock in stocks %}
-        <tr>
-            <td>{{ stock.name }}</td>
+                {% for stock in stocks %}
+                <tr>
+                    <td>{{ stock.name }}</td>
+                    <td>{{ stock.ticker }}</td>
+                    <td>{{ stock.market }}</td>
+                    <td class="{% if stock.signal == 'BUY' %}buy{% elif stock.signal == 'SELL' %}sell{% else %}hold{% endif %}">
+                        {{ stock.signal }}
+                    </td>
+                    <td>{{ stock.score }}</td>
+                    <td><button type="button">Add</button></td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
 
-            <td class="
-                {% if stock.signal == 'BUY' %}buy
-                {% elif stock.signal == 'SELL' %}sell
-                {% else %}hold{% endif %}
-            ">
-                {{ stock.signal }}
-            </td>
-
-            <td>{{ stock.score }}</td>
-
-            <td>
-                <button>Add</button>
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
-
-    <!-- PORTFOLIO SECTION -->
     <div class="portfolio">
         <h2>Portfolio Overview</h2>
         <p>Total Value: £0</p>
