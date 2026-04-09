@@ -3,223 +3,504 @@
 <head>
     <title>CycleX AI</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body {
+        html, body {
             margin: 0;
+            padding: 0;
+            background: #0a0f1a;
+            color: #e5e7eb;
             font-family: Arial, sans-serif;
-            background: #0b0f1a;
-            color: white;
         }
+        * { box-sizing: border-box; }
+        body { padding: 18px; }
 
-        .header {
+        .brand-wrap {
             display: flex;
             align-items: center;
-            gap: 18px;
-            padding: 20px 24px;
-            border-bottom: 1px solid #1f2a44;
-            background: #0d1320;
+            justify-content: center;
+            gap: 24px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            padding-top: 8px;
         }
-
-        .logo {
-            height: 64px;
+        .brand-logo {
+            height: 130px;
             width: auto;
-            border-radius: 8px;
+            border-radius: 14px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.45);
         }
-
-        .title {
-            font-size: 34px;
-            font-weight: 800;
+        .brand-text {
+            text-align: left;
+        }
+        .brand-title {
             margin: 0;
+            font-size: 48px;
+            font-weight: 800;
+            background: linear-gradient(90deg, #ffffff, #8ab4ff, #2563eb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
-
-        .subtitle {
-            font-size: 16px;
-            color: #7aa2ff;
-            margin-top: 4px;
+        .brand-subtitle {
+            margin-top: 6px;
+            color: #93c5fd;
+            font-size: 20px;
         }
 
         .nav {
             display: flex;
             gap: 12px;
-            padding: 16px 24px 0 24px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
         }
-
         .nav a {
-            color: white;
             text-decoration: none;
-            padding: 10px 14px;
-            border: 1px solid #2c3b5c;
             background: #111827;
-            border-radius: 8px;
+            color: white;
+            border: 1px solid #334155;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-weight: 700;
         }
-
         .nav a.active {
-            background: #1d4ed8;
+            background: #2563eb;
         }
 
-        .container {
-            padding: 20px 24px 30px 24px;
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+        .badge {
+            background: #111827;
+            border: 1px solid #334155;
+            border-radius: 999px;
+            padding: 8px 12px;
+            color: #cbd5e1;
+            font-size: 14px;
+        }
+
+        .card {
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border: 1px solid #334155;
+            border-radius: 16px;
+            padding: 18px;
+            margin-bottom: 18px;
+            box-shadow: 0 8px 28px rgba(0,0,0,0.35);
         }
 
         .warning {
             background: #111827;
-            border: 1px solid #2c3b5c;
+            border: 1px solid #334155;
             border-radius: 10px;
-            padding: 12px;
-            margin-bottom: 10px;
+            padding: 10px 12px;
+            margin-top: 10px;
             color: #cbd5e1;
         }
 
-        .card {
-            background: #111827;
-            border: 1px solid #2c3b5c;
-            border-radius: 12px;
-            padding: 18px;
-            margin-bottom: 20px;
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
         }
 
-        .filters {
+        .tool-input, .tool-select, .tool-btn {
+            background: #0f172a;
+            color: #e5e7eb;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 14px;
+        }
+        .tool-btn {
+            cursor: pointer;
+            background: #2563eb;
+            font-weight: 700;
+        }
+        .tool-btn.remove {
+            background: #7f1d1d;
+            border-color: #7f1d1d;
+        }
+
+        .grid {
+            display: grid;
+            gap: 12px;
+        }
+        .grid-2 {
+            grid-template-columns: 1fr;
+        }
+        .grid-3 {
+            grid-template-columns: 1fr;
+        }
+        .grid-4 {
+            grid-template-columns: 1fr;
+        }
+        @media (min-width: 900px) {
+            .grid-2 { grid-template-columns: 1fr 1fr; }
+            .grid-3 { grid-template-columns: repeat(3, 1fr); }
+            .grid-4 { grid-template-columns: repeat(4, 1fr); }
+        }
+
+        .portfolio-card, .box, .chart-wrap {
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 14px;
+        }
+        .portfolio-card.active {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 1px #3b82f6 inset;
+        }
+
+        .buy { color: #22c55e; font-weight: bold; }
+        .hold { color: #facc15; font-weight: bold; }
+        .sell { color: #ef4444; font-weight: bold; }
+        .risk-low { color: #22c55e; font-weight: bold; }
+        .risk-medium { color: #facc15; font-weight: bold; }
+        .risk-high { color: #ef4444; font-weight: bold; }
+
+        .hero-price {
+            font-size: 34px;
+            font-weight: 800;
+            color: #f8fafc;
+        }
+        .hero-line {
             display: flex;
             gap: 12px;
             flex-wrap: wrap;
             align-items: center;
+            margin: 12px 0;
         }
-
-        select, button {
-            padding: 10px 12px;
+        .pill {
             background: #0f172a;
-            color: white;
-            border: 1px solid #2c3b5c;
-            border-radius: 8px;
+            border: 1px solid #334155;
+            border-radius: 999px;
+            padding: 8px 12px;
             font-size: 14px;
         }
 
-        button {
-            cursor: pointer;
-            background: #1d4ed8;
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 12px;
+            margin-top: 10px;
         }
-
         table {
             width: 100%;
+            min-width: 1100px;
             border-collapse: collapse;
-            min-width: 760px;
         }
-
-        .table-wrap {
-            overflow-x: auto;
-        }
-
         th, td {
-            padding: 12px 10px;
-            border-bottom: 1px solid #1f2a44;
+            padding: 11px 10px;
             text-align: left;
+            white-space: nowrap;
         }
-
         th {
-            color: #cbd5e1;
-            background: #101827;
+            background: #334155;
+        }
+        tbody tr:nth-child(even) {
+            background: #0f172a;
         }
 
-        tr:nth-child(even) {
-            background: #0e1523;
-        }
-
-        .buy { color: #22c55e; font-weight: bold; }
-        .sell { color: #ef4444; font-weight: bold; }
-        .hold { color: #facc15; font-weight: bold; }
-
-        .portfolio {
-            margin-top: 10px;
-            padding: 20px;
-            background: #131c2d;
-            border-radius: 10px;
-        }
-
-        .portfolio h2 {
+        .section-title {
             margin-top: 0;
+            margin-bottom: 14px;
         }
     </style>
 </head>
-
 <body>
 
-<div class="header">
-    <img src="{{ url_for('static', filename='cyclex-logo.jpg') }}" class="logo" alt="CycleX AI Logo">
-    <div>
-        <div class="title">CycleX AI</div>
-        <div class="subtitle">AI Risk-Adaptive Market Intelligence</div>
+    <div class="brand-wrap">
+        <img src="{{ url_for('static', filename='cyclex-logo.jpg') }}" alt="CycleX AI Logo" class="brand-logo">
+        <div class="brand-text">
+            <h1 class="brand-title">CycleX AI</h1>
+            <div class="brand-subtitle">AI Risk-Adaptive Market Intelligence</div>
+        </div>
     </div>
-</div>
 
-<div class="nav">
-    <a href="/?view=opportunities" class="{% if view == 'opportunities' %}active{% endif %}">Opportunities</a>
-    <a href="/?view=dashboard" class="{% if view == 'dashboard' %}active{% endif %}">Dashboard</a>
-</div>
+    <div class="nav">
+        <a href="/?view=dashboard" class="{% if view == 'dashboard' %}active{% endif %}">Dashboard</a>
+        <a href="/?view=opportunities" class="{% if view == 'opportunities' %}active{% endif %}">Opportunities</a>
+    </div>
 
-<div class="container">
-
-    {% for item in disclaimers %}
-    <div class="warning">{{ item }}</div>
-    {% endfor %}
-
-    <div class="card">
-        <form method="get" action="/" class="filters">
-            <input type="hidden" name="view" value="opportunities">
-
-            <select name="risk">
-                <option {% if risk == 'All Risk Levels' %}selected{% endif %}>All Risk Levels</option>
-                <option {% if risk == 'Low' %}selected{% endif %}>Low</option>
-                <option {% if risk == 'Medium' %}selected{% endif %}>Medium</option>
-                <option {% if risk == 'High' %}selected{% endif %}>High</option>
-            </select>
-
-            <select name="market">
-                <option {% if market == 'All Markets' %}selected{% endif %}>All Markets</option>
-                <option {% if market == 'US' %}selected{% endif %}>US</option>
-                <option {% if market == 'UK' %}selected{% endif %}>UK</option>
-                <option {% if market == 'Hong Kong' %}selected{% endif %}>Hong Kong</option>
-                <option {% if market == 'India' %}selected{% endif %}>India</option>
-            </select>
-
-            <button type="submit">Apply Filters</button>
-        </form>
+    <div class="topbar">
+        <div class="badge">CycleX AI provides market intelligence and analytics only</div>
+        <div class="badge">Active Portfolio: {{ active_portfolio.name }}</div>
+        <div class="badge">Last updated: {{ now }}</div>
     </div>
 
     <div class="card">
-        <div class="table-wrap">
+        {% for item in disclaimers %}
+        <div class="warning">{{ item }}</div>
+        {% endfor %}
+    </div>
+
+    <div class="card">
+        <h2 class="section-title">Portfolios</h2>
+        <div class="grid grid-4">
+            {% for p in portfolio_cards %}
+            <div class="portfolio-card {% if p.is_active %}active{% endif %}">
+                <div><strong>{{ p.name }}</strong></div>
+                <div>Category: {{ p.risk }}</div>
+                <div>Market: {{ p.market }}</div>
+                <div>Currency: {{ p.currency }}</div>
+                <div>Holdings: {{ p.holdings_count }}</div>
+                <div>Total Value: {{ p.total_value }}</div>
+                <form method="post" action="/portfolio/select" style="margin-top:10px;">
+                    <input type="hidden" name="portfolio_id" value="{{ p.id }}">
+                    <button class="tool-btn" type="submit">Select</button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="card">
+        <h2 class="section-title">Portfolio Manager</h2>
+        <div class="grid grid-2">
+            <div class="box">
+                <h3>Create Portfolio</h3>
+                <form method="post" action="/portfolio/create" class="controls">
+                    <input class="tool-input" type="text" name="name" placeholder="Portfolio name">
+                    <select class="tool-select" name="risk">
+                        {% for item in risk_options %}
+                        <option value="{{ item }}">{{ item }}</option>
+                        {% endfor %}
+                    </select>
+                    <select class="tool-select" name="market">
+                        {% for item in market_options %}
+                        <option value="{{ item }}">{{ item }}</option>
+                        {% endfor %}
+                    </select>
+                    <input class="tool-input" type="text" name="currency" placeholder="Currency e.g. GBP">
+                    <button class="tool-btn" type="submit">Create Portfolio</button>
+                </form>
+            </div>
+
+            <div class="box">
+                <h3>Active Portfolio Summary</h3>
+                <div>Name: {{ active_portfolio.name }}</div>
+                <div>Risk: {{ active_portfolio.risk }}</div>
+                <div>Market: {{ active_portfolio.market }}</div>
+                <div>Currency: {{ active_portfolio.currency }}</div>
+                <div>Holdings: {{ portfolio_summary.holdings_count }}</div>
+                <div>Total Value: {{ portfolio_summary.total_value }}</div>
+            </div>
+        </div>
+    </div>
+
+    {% if view == 'dashboard' %}
+
+    <div class="card">
+        <h2 class="section-title">Dashboard</h2>
+
+        <div class="grid grid-2">
+            <div class="box">
+                <h3>Top Opportunity</h3>
+                {% if best %}
+                    <div><strong>{{ best.name }}</strong> ({{ best.symbol }})</div>
+                    <div>{{ best.market }} | {{ best.exchange }} | {{ best.currency }}</div>
+                    <div class="hero-line">
+                        <div class="hero-price">{{ best.price }}</div>
+                        <div class="pill">Signal: <span class="{{ best.signal|lower }}">{{ best.signal }}</span></div>
+                        <div class="pill">Score: {{ best.score }}</div>
+                        <div class="pill">Risk Band:
+                            <span class="{% if best.risk_band == 'Low' %}risk-low{% elif best.risk_band == 'Medium' %}risk-medium{% else %}risk-high{% endif %}">
+                                {{ best.risk_band }}
+                            </span>
+                        </div>
+                    </div>
+                    <form method="post" action="/portfolio/add" class="controls">
+                        <input type="hidden" name="symbol" value="{{ best.symbol }}">
+                        <input class="tool-input" type="number" name="units" step="0.01" min="0.01" placeholder="Units / Shares">
+                        <button class="tool-btn" type="submit">Add to Portfolio</button>
+                    </form>
+                {% else %}
+                    <div>No opportunities found.</div>
+                {% endif %}
+            </div>
+
+            <div class="chart-wrap">
+                <h3>All Portfolios Comparison</h3>
+                <canvas id="comparisonChart" height="150"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2 class="section-title">{{ active_portfolio.name }} Holdings</h2>
+
+        {% if portfolio_summary.holdings_count > 0 %}
+        <div class="chart-wrap">
+            <h3>Active Portfolio Holdings Value</h3>
+            <canvas id="portfolioChart" height="140"></canvas>
+        </div>
+
+        <div class="table-wrapper">
             <table>
-                <tr>
-                    <th>Company</th>
-                    <th>Ticker</th>
-                    <th>Market</th>
-                    <th>Signal</th>
-                    <th>Score</th>
-                    <th>Action</th>
-                </tr>
+                <thead>
+                    <tr>
+                        <th>Company</th>
+                        <th>Ticker</th>
+                        <th>Market</th>
+                        <th>Exchange</th>
+                        <th>Purchased</th>
+                        <th>Purchase Price</th>
+                        <th>Current Price</th>
+                        <th>Units</th>
+                        <th>Total Value</th>
+                        <th>Return</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in portfolio_summary.holdings %}
+                    <tr>
+                        <td>{{ item.name }}</td>
+                        <td>{{ item.symbol }}</td>
+                        <td>{{ item.market }}</td>
+                        <td>{{ item.exchange }}</td>
+                        <td>{{ item.purchase_date }}</td>
+                        <td>{{ item.purchase_price_display }}</td>
+                        <td>{{ item.current_price_display }}</td>
+                        <td>{{ item.units }}</td>
+                        <td>{{ item.current_value_display }}</td>
+                        <td class="{% if item.return_pct >= 0 %}buy{% else %}sell{% endif %}">{{ item.return_pct }}%</td>
+                        <td>
+                            <form method="post" action="/portfolio/remove">
+                                <input type="hidden" name="symbol" value="{{ item.symbol }}">
+                                <button class="tool-btn remove" type="submit">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+            <div class="warning">No holdings yet. Add stocks from Opportunities or Top Opportunity.</div>
+        {% endif %}
+    </div>
 
-                {% for stock in stocks %}
-                <tr>
-                    <td>{{ stock.name }}</td>
-                    <td>{{ stock.ticker }}</td>
-                    <td>{{ stock.market }}</td>
-                    <td class="{% if stock.signal == 'BUY' %}buy{% elif stock.signal == 'SELL' %}sell{% else %}hold{% endif %}">
-                        {{ stock.signal }}
-                    </td>
-                    <td>{{ stock.score }}</td>
-                    <td><button type="button">Add</button></td>
-                </tr>
+    {% else %}
+
+    <div class="card">
+        <h2 class="section-title">Opportunities</h2>
+
+        <form method="get" action="/" class="controls">
+            <input type="hidden" name="view" value="opportunities">
+            <select class="tool-select" name="risk">
+                {% for item in risk_options %}
+                <option value="{{ item }}" {% if item == risk %}selected{% endif %}>{{ item }}</option>
                 {% endfor %}
+            </select>
+
+            <select class="tool-select" name="market">
+                {% for item in market_options %}
+                <option value="{{ item }}" {% if item == market %}selected{% endif %}>{{ item }}</option>
+                {% endfor %}
+            </select>
+
+            <select class="tool-select" name="signal">
+                {% for item in signal_options %}
+                <option value="{{ item }}" {% if item == signal %}selected{% endif %}>{{ item }}</option>
+                {% endfor %}
+            </select>
+
+            <button class="tool-btn" type="submit">Apply Filters</button>
+        </form>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Company</th>
+                        <th>Ticker</th>
+                        <th>Market</th>
+                        <th>Exchange</th>
+                        <th>Currency</th>
+                        <th>Signal</th>
+                        <th>Risk Band</th>
+                        <th>Score</th>
+                        <th>Price</th>
+                        <th>Units</th>
+                        <th>Add</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stock in stocks %}
+                    <tr>
+                        <td>{{ stock.name }}</td>
+                        <td>{{ stock.symbol }}</td>
+                        <td>{{ stock.market }}</td>
+                        <td>{{ stock.exchange }}</td>
+                        <td>{{ stock.currency }}</td>
+                        <td class="{{ stock.signal|lower }}">{{ stock.signal }}</td>
+                        <td>
+                            <span class="{% if stock.risk_band == 'Low' %}risk-low{% elif stock.risk_band == 'Medium' %}risk-medium{% else %}risk-high{% endif %}">
+                                {{ stock.risk_band }}
+                            </span>
+                        </td>
+                        <td>{{ stock.score }}</td>
+                        <td>{{ stock.price }}</td>
+                        <td>
+                            <form method="post" action="/portfolio/add" class="controls">
+                                <input type="hidden" name="symbol" value="{{ stock.symbol }}">
+                                <input class="tool-input" type="number" name="units" step="0.01" min="0.01" placeholder="Units">
+                        </td>
+                        <td>
+                                <button class="tool-btn" type="submit">Add</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
             </table>
         </div>
     </div>
 
-    <div class="portfolio">
-        <h2>Portfolio Overview</h2>
-        <p>Total Value: £0</p>
-        <p>Performance chart coming next step</p>
-    </div>
+    {% endif %}
 
-</div>
+    <script>
+        new Chart(document.getElementById('comparisonChart'), {
+            type: 'bar',
+            data: {
+                labels: {{ comparison_labels|tojson }},
+                datasets: [{
+                    label: 'Portfolio Value',
+                    data: {{ comparison_values|tojson }},
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                plugins: { legend: { labels: { color: '#e5e7eb' } } },
+                scales: {
+                    x: { ticks: { color: '#94a3b8' }, grid: { color: '#1f2937' } },
+                    y: { ticks: { color: '#94a3b8' }, grid: { color: '#1f2937' } }
+                }
+            }
+        });
+
+        {% if portfolio_summary.holdings_count > 0 %}
+        new Chart(document.getElementById('portfolioChart'), {
+            type: 'doughnut',
+            data: {
+                labels: {{ portfolio_chart_labels|tojson }},
+                datasets: [{
+                    label: 'Active Portfolio',
+                    data: {{ portfolio_chart_values|tojson }},
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                plugins: { legend: { labels: { color: '#e5e7eb' } } }
+            }
+        });
+        {% endif %}
+    </script>
 
 </body>
 </html>
