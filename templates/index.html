@@ -19,13 +19,13 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 24px;
+            gap: 28px;
             flex-wrap: wrap;
             margin-bottom: 20px;
             padding-top: 8px;
         }
         .brand-logo {
-            height: 130px;
+            height: 150px;
             width: auto;
             border-radius: 14px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.45);
@@ -35,7 +35,7 @@
         }
         .brand-title {
             margin: 0;
-            font-size: 48px;
+            font-size: 50px;
             font-weight: 800;
             background: linear-gradient(90deg, #ffffff, #8ab4ff, #2563eb);
             -webkit-background-clip: text;
@@ -54,7 +54,7 @@
             flex-wrap: wrap;
             margin-bottom: 18px;
         }
-        .nav a {
+        .nav a, .nav button {
             text-decoration: none;
             background: #111827;
             color: white;
@@ -62,6 +62,7 @@
             padding: 12px 16px;
             border-radius: 12px;
             font-weight: 700;
+            cursor: pointer;
         }
         .nav a.active {
             background: #2563eb;
@@ -130,22 +131,15 @@
             display: grid;
             gap: 12px;
         }
-        .grid-2 {
-            grid-template-columns: 1fr;
-        }
-        .grid-3 {
-            grid-template-columns: 1fr;
-        }
-        .grid-4 {
-            grid-template-columns: 1fr;
-        }
+        .grid-2 { grid-template-columns: 1fr; }
+        .grid-4 { grid-template-columns: 1fr; }
+
         @media (min-width: 900px) {
             .grid-2 { grid-template-columns: 1fr 1fr; }
-            .grid-3 { grid-template-columns: repeat(3, 1fr); }
             .grid-4 { grid-template-columns: repeat(4, 1fr); }
         }
 
-        .portfolio-card, .box, .chart-wrap {
+        .portfolio-card, .box, .chart-wrap, .method-card {
             background: rgba(15, 23, 42, 0.9);
             border: 1px solid #334155;
             border-radius: 12px;
@@ -162,6 +156,8 @@
         .risk-low { color: #22c55e; font-weight: bold; }
         .risk-medium { color: #facc15; font-weight: bold; }
         .risk-high { color: #ef4444; font-weight: bold; }
+        .owned { color: #22c55e; font-weight: bold; }
+        .not-owned { color: #94a3b8; }
 
         .hero-price {
             font-size: 34px;
@@ -190,13 +186,14 @@
         }
         table {
             width: 100%;
-            min-width: 1100px;
+            min-width: 1320px;
             border-collapse: collapse;
         }
         th, td {
             padding: 11px 10px;
             text-align: left;
             white-space: nowrap;
+            vertical-align: top;
         }
         th {
             background: #334155;
@@ -208,6 +205,71 @@
         .section-title {
             margin-top: 0;
             margin-bottom: 14px;
+        }
+
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.72);
+            z-index: 9999;
+            overflow-y: auto;
+            padding: 24px;
+        }
+        .modal {
+            max-width: 1050px;
+            margin: 24px auto;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 16px;
+            padding: 22px;
+            color: #e5e7eb;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        .modal h2, .modal h3 {
+            margin-top: 0;
+        }
+        .modal-close {
+            float: right;
+            background: #1f2937;
+            color: white;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+        .method-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+        @media (min-width: 900px) {
+            .method-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        .small-muted {
+            color: #94a3b8;
+            font-size: 13px;
+        }
+
+        @media print {
+            .nav, .tool-btn, .modal-backdrop {
+                display: none !important;
+            }
+            body {
+                background: white;
+                color: black;
+            }
+            .card, .portfolio-card, .box, .chart-wrap, .method-card {
+                box-shadow: none;
+                border: 1px solid #ccc;
+                background: white;
+                color: black;
+            }
+            .brand-title {
+                -webkit-text-fill-color: black;
+            }
         }
     </style>
 </head>
@@ -224,11 +286,15 @@
     <div class="nav">
         <a href="/?view=dashboard" class="{% if view == 'dashboard' %}active{% endif %}">Dashboard</a>
         <a href="/?view=opportunities" class="{% if view == 'opportunities' %}active{% endif %}">Opportunities</a>
+        <button type="button" onclick="openMethodology()">How CycleX Works</button>
+        <button type="button" onclick="sharePortal()">Share</button>
+        <button type="button" onclick="window.print()">Print</button>
     </div>
 
     <div class="topbar">
         <div class="badge">CycleX AI provides market intelligence and analytics only</div>
         <div class="badge">Active Portfolio: {{ active_portfolio.name }}</div>
+        <div class="badge">Real-Time Layer: continuously updating / dynamically re-ranked</div>
         <div class="badge">Last updated: {{ now }}</div>
     </div>
 
@@ -248,7 +314,7 @@
                 <div>Market: {{ p.market }}</div>
                 <div>Currency: {{ p.currency }}</div>
                 <div>Holdings: {{ p.holdings_count }}</div>
-                <div>Total Value: {{ p.total_value }}</div>
+                <div>Total Value: {{ p.total_value_display }}</div>
                 <form method="post" action="/portfolio/select" style="margin-top:10px;">
                     <input type="hidden" name="portfolio_id" value="{{ p.id }}">
                     <button class="tool-btn" type="submit">Select</button>
@@ -287,7 +353,7 @@
                 <div>Market: {{ active_portfolio.market }}</div>
                 <div>Currency: {{ active_portfolio.currency }}</div>
                 <div>Holdings: {{ portfolio_summary.holdings_count }}</div>
-                <div>Total Value: {{ portfolio_summary.total_value }}</div>
+                <div>Total Value: {{ portfolio_summary.total_value_display }}</div>
             </div>
         </div>
     </div>
@@ -303,6 +369,8 @@
                 {% if best %}
                     <div><strong>{{ best.name }}</strong> ({{ best.symbol }})</div>
                     <div>{{ best.market }} | {{ best.exchange }} | {{ best.currency }}</div>
+                    <div class="small-muted">{{ best.reason_short }}</div>
+
                     <div class="hero-line">
                         <div class="hero-price">{{ best.price }}</div>
                         <div class="pill">Signal: <span class="{{ best.signal|lower }}">{{ best.signal }}</span></div>
@@ -313,11 +381,20 @@
                             </span>
                         </div>
                     </div>
-                    <form method="post" action="/portfolio/add" class="controls">
-                        <input type="hidden" name="symbol" value="{{ best.symbol }}">
-                        <input class="tool-input" type="number" name="units" step="0.01" min="0.01" placeholder="Units / Shares">
-                        <button class="tool-btn" type="submit">Add to Portfolio</button>
-                    </form>
+
+                    <div class="controls">
+                        <button class="tool-btn" type="button" onclick='openReasoning({{ best|tojson }})'>View reasoning</button>
+                    </div>
+
+                    {% if best.symbol in owned_symbols %}
+                        <div class="owned" style="margin-top:12px;">Already owned in active portfolio</div>
+                    {% else %}
+                        <form method="post" action="/portfolio/add" class="controls" style="margin-top:12px;">
+                            <input type="hidden" name="symbol" value="{{ best.symbol }}">
+                            <input class="tool-input" type="number" name="units" step="0.01" min="0.01" placeholder="Units / Shares">
+                            <button class="tool-btn" type="submit">Add to Portfolio</button>
+                        </form>
+                    {% endif %}
                 {% else %}
                     <div>No opportunities found.</div>
                 {% endif %}
@@ -325,6 +402,11 @@
 
             <div class="chart-wrap">
                 <h3>All Portfolios Comparison</h3>
+                <div style="margin-bottom:10px; color:#94a3b8;">
+                    {% for p in portfolio_cards %}
+                        <div>{{ p.name }}: {{ p.total_value_display }}</div>
+                    {% endfor %}
+                </div>
                 <canvas id="comparisonChart" height="150"></canvas>
             </div>
         </div>
@@ -392,6 +474,7 @@
 
         <form method="get" action="/" class="controls">
             <input type="hidden" name="view" value="opportunities">
+
             <select class="tool-select" name="risk">
                 {% for item in risk_options %}
                 <option value="{{ item }}" {% if item == risk %}selected{% endif %}>{{ item }}</option>
@@ -426,6 +509,9 @@
                         <th>Risk Band</th>
                         <th>Score</th>
                         <th>Price</th>
+                        <th>Why shown</th>
+                        <th>Status</th>
+                        <th>Reasoning</th>
                         <th>Units</th>
                         <th>Add</th>
                     </tr>
@@ -446,14 +532,33 @@
                         </td>
                         <td>{{ stock.score }}</td>
                         <td>{{ stock.price }}</td>
+                        <td>{{ stock.reason_short }}</td>
                         <td>
-                            <form method="post" action="/portfolio/add" class="controls">
-                                <input type="hidden" name="symbol" value="{{ stock.symbol }}">
-                                <input class="tool-input" type="number" name="units" step="0.01" min="0.01" placeholder="Units">
+                            {% if stock.symbol in owned_symbols %}
+                                <span class="owned">Owned</span>
+                            {% else %}
+                                <span class="not-owned">Not owned</span>
+                            {% endif %}
                         </td>
                         <td>
-                                <button class="tool-btn" type="submit">Add</button>
-                            </form>
+                            <button class="tool-btn" type="button" onclick='openReasoning({{ stock|tojson }})'>View reasoning</button>
+                        </td>
+                        <td>
+                            {% if stock.symbol in owned_symbols %}
+                                <input class="tool-input" type="number" value="0" disabled placeholder="Owned">
+                            {% else %}
+                                <form method="post" action="/portfolio/add" class="controls">
+                                    <input type="hidden" name="symbol" value="{{ stock.symbol }}">
+                                    <input class="tool-input" type="number" name="units" step="0.01" min="0.01" placeholder="Units">
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if stock.symbol in owned_symbols %}
+                                <button class="tool-btn" type="button" disabled style="opacity:0.5; cursor:not-allowed;">Owned</button>
+                            {% else %}
+                                    <button class="tool-btn" type="submit">Add</button>
+                                </form>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -464,42 +569,177 @@
 
     {% endif %}
 
-    <script>
-        new Chart(document.getElementById('comparisonChart'), {
-            type: 'bar',
-            data: {
-                labels: {{ comparison_labels|tojson }},
-                datasets: [{
-                    label: 'Portfolio Value',
-                    data: {{ comparison_values|tojson }},
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                plugins: { legend: { labels: { color: '#e5e7eb' } } },
-                scales: {
-                    x: { ticks: { color: '#94a3b8' }, grid: { color: '#1f2937' } },
-                    y: { ticks: { color: '#94a3b8' }, grid: { color: '#1f2937' } }
-                }
-            }
-        });
+    <div id="methodologyBackdrop" class="modal-backdrop">
+        <div class="modal">
+            <button class="modal-close" onclick="closeMethodology()">Close</button>
+            <h2>How CycleX Works</h2>
+            <p>
+                CycleX is designed as a continuously updating, AI-driven, risk-adaptive market intelligence portal.
+                It identifies and ranks opportunities by combining market behaviour, company quality, news and event
+                context, macroeconomic backdrop, and risk-band filtering.
+            </p>
 
-        {% if portfolio_summary.holdings_count > 0 %}
-        new Chart(document.getElementById('portfolioChart'), {
-            type: 'doughnut',
-            data: {
-                labels: {{ portfolio_chart_labels|tojson }},
-                datasets: [{
-                    label: 'Active Portfolio',
-                    data: {{ portfolio_chart_values|tojson }},
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                plugins: { legend: { labels: { color: '#e5e7eb' } } }
+            <div class="method-grid">
+                <div class="method-card">
+                    <h3>Market & Technical Layer</h3>
+                    <p>CycleX evaluates price behaviour, trend structure, volatility, and relative ranking within the screened universe.</p>
+                </div>
+                <div class="method-card">
+                    <h3>Company Fundamentals</h3>
+                    <p>CycleX is designed to assess business quality, earnings strength, revenue durability, and balance-sheet resilience.</p>
+                </div>
+                <div class="method-card">
+                    <h3>News & Event Intelligence</h3>
+                    <p>CycleX is intended to incorporate breaking company developments, earnings updates, sentiment shifts and material event risk.</p>
+                </div>
+                <div class="method-card">
+                    <h3>Macro & Geopolitical Context</h3>
+                    <p>CycleX is built to consider inflation, rates, policy decisions, currencies and wider geopolitical developments affecting markets.</p>
+                </div>
+                <div class="method-card">
+                    <h3>Risk-Adaptive Filtering</h3>
+                    <p>Outputs are filtered through Defensive, Cautious, Balanced, Growth or Aggressive profiles so the surfaced set matches the selected risk posture.</p>
+                </div>
+                <div class="method-card">
+                    <h3>Real-Time Layer</h3>
+                    <p>CycleX is designed to work as a continuously updating engine, dynamically reassessing and re-ranking opportunities as conditions evolve.</p>
+                </div>
+            </div>
+
+            <div class="warning" style="margin-top:14px;">
+                Data inputs may include a combination of real-time, delayed and periodically refreshed sources depending on market availability and system configuration.
+            </div>
+        </div>
+    </div>
+
+    <div id="reasoningBackdrop" class="modal-backdrop">
+        <div class="modal">
+            <button class="modal-close" onclick="closeReasoning()">Close</button>
+            <h2 id="reasoningTitle">Recommendation reasoning</h2>
+            <div id="reasoningBody"></div>
+        </div>
+    </div>
+
+    <script>
+        function openMethodology() {
+            document.getElementById('methodologyBackdrop').style.display = 'block';
+        }
+
+        function closeMethodology() {
+            document.getElementById('methodologyBackdrop').style.display = 'none';
+        }
+
+        function openReasoning(stock) {
+            document.getElementById('reasoningBackdrop').style.display = 'block';
+            document.getElementById('reasoningTitle').innerText = stock.name + ' (' + stock.symbol + ')';
+
+            const body = `
+                <div class="grid grid-2">
+                    <div class="method-card">
+                        <h3>Headline</h3>
+                        <p><strong>Signal:</strong> ${stock.signal}</p>
+                        <p><strong>Score:</strong> ${stock.score}</p>
+                        <p><strong>Risk Band:</strong> ${stock.risk_band}</p>
+                        <p><strong>Market:</strong> ${stock.market}</p>
+                        <p><strong>Exchange:</strong> ${stock.exchange}</p>
+                        <p><strong>Currency:</strong> ${stock.currency}</p>
+                    </div>
+                    <div class="method-card">
+                        <h3>Why surfaced</h3>
+                        <p>${stock.reason_short || ""}</p>
+                        <p><strong>Why shown:</strong> ${stock.reasoning?.why_shown || ""}</p>
+                        <p><strong>Risk fit:</strong> ${stock.reasoning?.risk_fit || ""}</p>
+                    </div>
+                    <div class="method-card">
+                        <h3>Supporting factors</h3>
+                        <p><strong>Technical:</strong> ${stock.reasoning?.technical || ""}</p>
+                        <p><strong>Fundamental:</strong> ${stock.reasoning?.fundamental || ""}</p>
+                    </div>
+                    <div class="method-card">
+                        <h3>Context</h3>
+                        <p><strong>Event layer:</strong> ${stock.reasoning?.event || ""}</p>
+                        <p><strong>Macro layer:</strong> ${stock.reasoning?.macro || ""}</p>
+                    </div>
+                </div>
+                <div class="warning" style="margin-top:14px;">
+                    CycleX provides market intelligence and explanation layers, not personal financial advice.
+                </div>
+            `;
+            document.getElementById('reasoningBody').innerHTML = body;
+        }
+
+        function closeReasoning() {
+            document.getElementById('reasoningBackdrop').style.display = 'none';
+        }
+
+        function sharePortal() {
+            const shareData = {
+                title: 'CycleX AI',
+                text: 'CycleX AI – AI Risk-Adaptive Market Intelligence',
+                url: window.location.href
+            };
+
+            if (navigator.share) {
+                navigator.share(shareData).catch(() => {});
+            } else {
+                navigator.clipboard.writeText(window.location.href).then(() => {
+                    alert('Link copied to clipboard');
+                }).catch(() => {
+                    alert(window.location.href);
+                });
             }
-        });
-        {% endif %}
+        }
+
+        const comparisonCanvas = document.getElementById('comparisonChart');
+        if (comparisonCanvas) {
+            new Chart(comparisonCanvas, {
+                type: 'bar',
+                data: {
+                    labels: {{ comparison_labels|tojson }},
+                    datasets: [{
+                        label: 'Portfolio Value',
+                        data: {{ comparison_values|tojson }},
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    plugins: {
+                        legend: { labels: { color: '#e5e7eb' } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const currencies = {{ comparison_currencies|tojson }};
+                                    const currency = currencies[context.dataIndex] || '';
+                                    return currency + ' ' + context.parsed.y;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { ticks: { color: '#94a3b8' }, grid: { color: '#1f2937' } },
+                        y: { ticks: { color: '#94a3b8' }, grid: { color: '#1f2937' } }
+                    }
+                }
+            });
+        }
+
+        const portfolioCanvas = document.getElementById('portfolioChart');
+        if (portfolioCanvas) {
+            new Chart(portfolioCanvas, {
+                type: 'doughnut',
+                data: {
+                    labels: {{ portfolio_chart_labels|tojson }},
+                    datasets: [{
+                        label: 'Active Portfolio',
+                        data: {{ portfolio_chart_values|tojson }},
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    plugins: { legend: { labels: { color: '#e5e7eb' } } }
+                }
+            });
+        }
     </script>
 
 </body>
